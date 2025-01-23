@@ -1,0 +1,64 @@
+* Schedule Checker App
+A lightweight Flask-based web application to process and visualize class schedules. This app allows users to upload schedule files, process them, and generate interactive visualizations for analysis.
+
+** Features
+- *File Upload:* Upload schedule files (e.g., Excel) via a web interface.
+- *Processing:* Automatically process the uploaded file to clean and standardize the data.
+- *Visualizations:*
+  - Instructor-based schedule charts.
+  - Room-based schedule charts.
+- *Interactive Interface:* Access processed files and visualizations directly from the app.
+
+** Requirements
+- Python 3.11+
+- Flask
+- Pandas
+- Altair
+- uWSGI (for production deployment)
+
+** Project Structure
+#+BEGIN_SRC text
+schedule_checker_app/
+├── class_schedule/         # Core schedule processing logic
+├── conf/                   # Configuration files (e.g., uWSGI)
+├── processed/              # Processed files (output directory)
+├── static/                 # Static assets (CSS, JS, etc.)
+├── templates/              # HTML templates for Flask
+├── requirements.txt        # Python dependencies
+├── Dockerfile              # Docker configuration for deployment
+└── README.md               # This file
+#+END_SRC
+
+** Running Locally
+1. Clone the repository:
+   #+BEGIN_SRC bash
+   git clone https://github.com/your-username/schedule_checker_app.git
+   cd schedule_checker_app
+   #+END_SRC
+
+2. Create a virtual environment and install dependencies:
+   #+BEGIN_SRC bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   #+END_SRC
+
+3. Run the app:
+   #+BEGIN_SRC bash
+   export FLASK_ENV=development
+   flask run
+   #+END_SRC
+
+4. Access the app at:
+   http://localhost:5000
+
+** Running with Docker
+1. Build the Docker image:
+   #+BEGIN_SRC bash
+   docker build -t schedule_checker_app .
+   #+END_SRC
+
+2. Run the container:
+   #+BEGIN_SRC bash
+   docker run -p 8080:8080 schedule_checker_app
+   #+END_SRC
