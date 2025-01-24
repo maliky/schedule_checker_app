@@ -1,5 +1,6 @@
 FROM python:3.11-slim
 
+EXPOSE 9090
 ENV FLASK_ENV=production
 
 
