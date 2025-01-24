@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-EXPOSE 9090
+
 ENV FLASK_ENV=production
 
 
@@ -21,7 +21,7 @@ COPY . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Exposer les ports nécessaires
-EXPOSE 80 443
+EXPOSE 9090 9093
 
 # Lancer les services Nginx et Gunicorn
 CMD ["uwsgi", "--ini", "conf/uwsgi.ini"]
