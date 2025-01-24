@@ -1,8 +1,8 @@
 FROM python:3.11-slim
 
 
-ENV PYTHONPATH=/app
-ENV FLASK_ENV=production
+ENV PYTHONPATH=/app \
+    FLASK_ENV=production
 
 
 # Installer les dépendances système
@@ -23,5 +23,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 9090
 
 # Lancer les services Nginx et Gunicorn
-CMD ["bash" "./run.sh"]
+CMD ["bash", "./run.sh"]
 
