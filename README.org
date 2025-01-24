@@ -50,7 +50,7 @@ schedule_checker_app/
    #+END_SRC
 
 4. Access the app at:
-   http://localhost:5000
+   http://localhost:5000  # dev
 
 ** Running with Docker
 1. Build the Docker image:
@@ -60,6 +60,6 @@ schedule_checker_app/
 
 2. Run the container:
    #+BEGIN_SRC bash
-   docker run -p 8080:8080 schedule_checker_app
+   docker run -p 9090:9090 schedule_checker_app
    #+END_SRC
    
