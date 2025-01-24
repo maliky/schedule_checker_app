@@ -21,7 +21,7 @@ COPY . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Exposer les ports nécessaires
-EXPOSE 9090 9093
+EXPOSE 9090
 
 # Lancer les services Nginx et Gunicorn
 CMD ["uwsgi", "--ini", "conf/uwsgi.ini"]
