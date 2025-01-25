@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, send_file
 import os
 import pandas as pd
 import altair as alt
@@ -53,7 +53,7 @@ def upload_file():
         processed_df = process_schedule(fname, sheet_name)
 
         # Optionally save the processed file
-        processed_path = os.path.join(app.config["PROCESSED_FOLDER"], "schedule.xlsx")
+        processed_path = os.path.join(app.config["PROCESSED_FOLDER"], "processed_schedule.xlsx")
 
         processed_df.to_excel(processed_path, index=False)
 
@@ -79,6 +79,24 @@ def view_instructor_chart():
 def view_room_chart():
     # Either return a template that embeds room_final_chart.html
     return render_template("room_final_chart.html")
+
+
+@app.route("/download_processed", methods=["GET"])
+def download_processed_file():
+    """
+    Route to download the processed schedule file.
+    """
+    processed_path = os.path.join(app.config["PROCESSED_FOLDER"], "processed_schedule.xlsx")
+
+    if not os.path.exists(processed_path):
+        return (
+            "No processed file available. Please upload and process a schedule first.",
+            404,
+        )
+
+    return send_file(
+        processed_path, as_attachment=True, download_name="processed_schedule.xlsx"
+    )
 
 
 if __name__ == "__main__":
