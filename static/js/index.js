@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
       File processed successfully!<br />
       <a href="/view_instructor_chart">View instructor_chart</a> &nbsp;|&nbsp;
       <a href="/view_room_chart">View room_chart</a>
+      <a href="/download_processed">Download standardized schedule file</a>
     </div>
   `;
             })
