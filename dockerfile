@@ -23,5 +23,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 9090
 
 # Lancer les services Nginx et Gunicorn
-CMD ["bash", "./run.sh"]
+CMD ["bash", "./run.sh" "--prod"]
 
