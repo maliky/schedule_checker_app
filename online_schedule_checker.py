@@ -32,7 +32,7 @@ if str(Path(__file__).resolve().parent) not in sys.path:
 ################
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", titre="Upload Your Schedule")
+    return render_template("index.html", titre="William V.S. Tubman Online Schedule Checker")
 
 
 @app.route("/upload", methods=["POST"])
