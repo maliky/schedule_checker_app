@@ -19,8 +19,22 @@ logger = logging.getLogger(__name__)
 
 
 def general_cleaning(df, logger=logger):
-    """Supprime les espaces en trop, harmonize la casse."""
-    logger.info("Supprime les espaces en trop, harmonize la casse.")
+    """
+    Perform initial cleaning on the schedule DataFrame.
+
+    Actions:
+    - Removes extra spaces from column names.
+    - Harmonizes column names to lowercase with underscores.
+    - Strips excess spaces from string values in all columns.
+
+    Logs:
+    - Logs the start and completion of the cleaning process.
+
+    Parameters:
+    - df (pd.DataFrame): Raw schedule data.
+    """
+    logger.info("Starting general cleaning of the data.")
+
     #    l2.info("Supprime les espaces en trop, harmonize la casse.")
     df.columns = [
         c.strip().lower().replace(" ", "_").strip().strip(".") for c in df.columns
@@ -34,11 +48,21 @@ def general_cleaning(df, logger=logger):
     for c in df:
         if isinstance(df[c].iloc[0], str):
             df[c] = df[c].str.strip().replace(r"  +", " ", regex=True)
+    logger.info("Completed general cleaning.")
     return df
 
 
 def clean_and_harmonize_times(df):
-    """cleaning and harmonizing times."""
+    """Clean and standardize the time column in the DataFrame.
+        Actions:
+    - Converts time to lowercase.
+    - Replaces common typos and standardizes formats.
+    Parameters:
+    - df (pd.DataFrame): DataFrame containing a 'time' column.
+
+    Returns:
+    - pd.DataFrame: DataFrame with cleaned and standardized time values.
+    """
     logger.info("cleaning and harmonizing times.")
 
     df.time = df.time.str.lower()
@@ -62,15 +86,21 @@ def clean_and_harmonize_times(df):
 
     no_meridium = ~df.time.apply(time_filter)
     df.loc[no_meridium, "time"] = df.loc[no_meridium, "time"].apply(lambda x: x + "pm")
+    logger.info("Completed time cleaning and harmonization.")
 
     return df
 
 
 def getting_start_end_times(df):
-    """Spliting time intervales on the dataframe to add cols = ("stime", "etime", "meridium")."""
-    logger.debug(
-        "Spliting time intervales on the dataframe to add cols = ('stime', 'etime', 'meridium')."
-    )
+    """
+    Extract start time, end time, and meridium from the 'time' column.
+    Parameters:
+    - df (pd.DataFrame): DataFrame containing a 'time' column.
+
+    Returns:
+    - pd.DataFrame: DataFrame with new columns: 'stime', 'etime', 'meridium'.
+    """
+    logger.info("Extracting start and end times from the time column.")
 
     split_interval = df.time.apply(split_time_interval)
     time_cols = ("stime", "etime", "meridium")
@@ -78,12 +108,18 @@ def getting_start_end_times(df):
 
     df.loc[:, "stime"] = df.stime.apply(clean)
     df.loc[:, "etime"] = df.etime.apply(clean)
+    logger.info("Completed extraction of start and end times.")
     return df
 
 
 def add_duration(df):
-    """Convert str times to time objects."""
-    logger.debug("Convert str times to time objects.")
+    """Calculate duration for each course based on start and end times.
+    Parameters:
+    - df (pd.DataFrame): DataFrame containing 'stime', 'etime', and 'meridium'.
+    Returns:
+    - pd.DataFrame: DataFrame with additional duration columns.
+    """
+    logger.info("Calculating course durations.")
     time_cols = ("stime", "etime", "meridium")
     _tmp = df.loc[:, time_cols].apply(get_datetimes, axis=1, result_type="expand")
     _tmp.columns = ("sts", "ets")
@@ -93,11 +129,17 @@ def add_duration(df):
     df.loc[:, "duration_str"] = df.duration_sec.apply(
         lambda s: f"{s //3600:02}:{s%3600 // 60 :02}"
     )
+    logger.info("Completed calculation of course durations.")
     return df
 
 
 def add_course_id_year_college(df):
-    """Crée et ajoute un identifiant avec ou sans sess no et le level du cours."""
+    """Generate unique course IDs, determine year level, and assign college.
+    Parameters:
+    - df (pd.DataFrame): Schedule DataFrame.
+    Returns:
+    - pd.DataFrame: DataFrame with added columns for course ID, year, and college.
+    """
     logger.info("Crée et ajoute un identifiant et l'année pour chaque cours.")
 
     course_id = ["course_code", "course_no", "section"]
@@ -127,19 +169,29 @@ def add_course_id_year_college(df):
 
     except KeyError as ke:
         msg = f">> {ke} is not a course that was seen before.  We need to update the course_colleged variable in file settings.py <<"
+        logger.warning(f"Unmapped course encountered: {e}")
         logger.warning(msg)
         pass
+    logger.info("Completed generation of course IDs and assignment of colleges.")
     return df
 
 
 def expand_days(df):
-    """Crée une ligne de cours par jour."""
-    logger.info("Crée une ligne de cours par jour.")
+    """
+    Expand days column into multiple rows, one for each weekday.
+    Parameters:
+    - df (pd.DataFrame): Schedule DataFrame.
+
+    Returns:
+    - pd.DataFrame: Expanded DataFrame with one row per day.
+    """
+
+    logger.info("Expanding days into separate rows.")
 
     tdf = pd.concat([expand_row(row) for _, row in df.iterrows()]).reset_index(
         drop=True
     )
-
+    logger.info("Completed expansion of days.")
     return tdf
 
 
@@ -173,16 +225,27 @@ def expand_row(row):
 
 
 def add_weekname(tdf):
-    """Ajoute une colone avec le nom du jour de la semaine."""
-    logger.info("Ajoute une colone avec le nom du jour de la semaine.")
+    """
+    Add a column with the weekday name for each course.
+    Parameters:
+    - df (pd.DataFrame): Schedule DataFrame.
+
+    Returns:
+    - pd.DataFrame: DataFrame with the weekday name added.
+    """
+    logger.info("Adding weekday names.")
+
     tdf.loc[:, "weekday"] = tdf.sts.dt.day_name()
     tdf.loc[:, "time_start"] = tdf.sts.apply(lambda ts: ts.strftime("%H:%M"))
     tdf.loc[:, "time_end"] = tdf.ets.apply(lambda ts: ts.strftime("%H:%M"))
+    logger.info("Completed expansion of days.")
     return tdf
 
 
 def special_applied_epidemiology_course(df: pd.DataFrame):
     """
+    Transform a single row with combined days into multiple rows, one per day.
+
     Adjusts a DataFrame of course offerings to handle special cases where
     a course has a total of 5 credits but is taught across 2 sessions.
 
@@ -232,5 +295,6 @@ def harmonize_course_codes(df, mapping=course_code_mapping):
     df.loc[:, "course_code"] = df.course_code.apply(
         lambda x: course_code_mapping.get(x, x)
     )
+    logger.info("Adding weekday names.")
 
     return df
