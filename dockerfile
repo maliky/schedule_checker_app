@@ -5,23 +5,23 @@ ENV PYTHONPATH=/app \
     FLASK_ENV=production
 
 
-# Installer les dépendances système
+# Instal system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Définir le répertoire de travail
+# Define working dir
 WORKDIR /app
 
-# Copier les fichiers nécessaires
+# Copy the necessary files to the app in the containeur
 COPY . /app
 
-# Installer les dépendances Python
+# install python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Exposer le port nécessaire
+# mke 9090 port visible from outside the container
 EXPOSE 9090
 
-# Lancer les services Nginx et Gunicorn
+# Launch the app in production mode with the lightweight gunicorn server (check the run.sh file)
 CMD ["bash", "./run.sh", "--prod"]
 

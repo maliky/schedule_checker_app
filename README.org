@@ -38,21 +38,20 @@ schedule_checker_app/
 
 2. Create a virtual environment and install dependencies:
    #+BEGIN_SRC bash
-   python3 -m venv venv
-   source venv/bin/activate
+   python3 -m venv schedule
+   source schedule/bin/activate
    pip install -r requirements.txt
    #+END_SRC
-
+   
 3. Run the app:
    #+BEGIN_SRC bash
-   export FLASK_ENV=development
-   flask run
+     run --dev  # dev
    #+END_SRC
 
 4. Access the app at:
    http://localhost:5000  # dev
 
-** Running with Docker
+** Running with Docker for production
 1. Build the Docker image:
    #+BEGIN_SRC bash
    docker build -t schedule_checker_app .
