@@ -121,7 +121,7 @@ def get_datetimes(row):
     if ehour > 8 and meridium == "pm":
         # this is an error we correct it
         # no courses allowed to finish after 9
-        # it's probably a morining course
+        # it's probably a morning course
         meridium = "am"
     if ehour < 8 and meridium == "am":
         # this is an error we correct it

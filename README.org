@@ -19,24 +19,43 @@ A lightweight Flask-based web application to process and visualize class schedul
 ** Project Structure
 #+BEGIN_SRC text
 schedule_checker_app/
-├── class_schedule/         # Core schedule processing logic
-├── conf/                   # Configuration files (e.g., uWSGI)
-├── processed/              # Processed files (output directory)
-├── static/                 # Static assets (CSS, JS, etc.)
-├── templates/              # HTML templates for Flask
-├── requirements.txt        # Python dependencies
-├── Dockerfile              # Docker configuration for deployment
-└── README.md               # This file
+├── class_schedule
+│   ├── class_schedule.py
+│   ├── helper.py
+│   ├── main.py
+│   ├── settings.py
+│   ├── utilities.py
+│   └── visualisation.py
+├── dockerfile
+├── online_schedule_checker.py
+├── processed
+├── README.org
+├── requirements.txt
+├── run.sh
+├── static
+│   ├── css
+│   │   └── index.css
+│   └── js
+│       └── index.js
+└── templates
+    ├── base.html
+    ├── index.html
+    ├── instructor_final_chart.html
+    ├── room_final_chart.html
+    └── view_charts.html
+
 #+END_SRC
 
-** Running Locally
-1. Clone the repository:
+** Getting the code
+
+Clone the repository:
    #+BEGIN_SRC bash
    git clone https://github.com/your-username/schedule_checker_app.git
    cd schedule_checker_app
    #+END_SRC
 
-2. Create a virtual environment and install dependencies:
+** Running the app in localy in dev mode   
+1. Create a virtual environment and install dependencies:
    #+BEGIN_SRC bash
    python3 -m venv schedule
    source schedule/bin/activate
@@ -45,13 +64,15 @@ schedule_checker_app/
    
 3. Run the app:
    #+BEGIN_SRC bash
-     run --dev  # dev
+     run.sh --dev  # dev
    #+END_SRC
 
-4. Access the app at:
+3. Access the app at:
    http://localhost:5000  # dev
 
+   
 ** Running with Docker for production
+
 1. Build the Docker image:
    #+BEGIN_SRC bash
    docker build -t schedule_checker_app .
@@ -61,4 +82,10 @@ schedule_checker_app/
    #+BEGIN_SRC bash
    docker run -p 9090:9090 schedule_checker_app
    #+END_SRC
+
+To use the docker in dev mode change the dockerfile line `CMD ["bash", "./run.sh", "--prod"]` to `CMD ["bash", "./run.sh", "--dev"]` before runing the docker with the above line.
    
+3. Access the app at:
+   http://your-ip:9090  # prod
+
+
