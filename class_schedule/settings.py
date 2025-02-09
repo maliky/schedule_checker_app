@@ -90,6 +90,11 @@ course_colleged = {
     ("EDU_382", "Methods of Teaching Engl & Lite", "Junior"): "COED",
     (
         "EDU_383",
+        "Method (s) of Teaching English and Literature in Jr. and Sr. High School",
+        "Junior",
+    ): "COED",
+    (
+        "EDU_383",
         "Method (s) Teaching English and Literature in Jr. and Sr. High School",
         "Junior",
     ): "COED",
