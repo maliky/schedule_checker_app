@@ -40,7 +40,10 @@ def general_cleaning(df, logger=logger):
         c.strip().lower().replace(" ", "_").strip().strip(".") for c in df.columns
     ]
     cols = ["days", "time"]
-    df.loc[:, cols] = df.loc[:, cols].apply(lambda r: r.str.lower())
+    try:
+        df.loc[:, cols] = df.loc[:, cols].apply(lambda r: r.str.lower())
+    except AttributeError as ae:
+        logger.exception(f"df.dtypes={df.dtypes}")
 
     # assert "college" in df.columns, f"'college' should be df.columns={df.columns}"
     # df.loc[:, "college"] = df.college.str.upper()
@@ -66,17 +69,29 @@ def clean_and_harmonize_times(df):
     logger.info("cleaning and harmonizing times.")
 
     df.time = df.time.str.lower()
+    # we replace 'noon' with 'pm' to later ease the convertion of time in dt.
+    # noon is not a meridium
     df.time = df.time.str.replace("noon", "pm")
 
     #  df.loc[354, 'time'] = df.loc[354].time.split('/')[1]
-    # replacing  time separators space '-'
+    # add a '-' between two digits separated by a space
     df.time = df.time.str.replace(
         r"(\d) (\d)", lambda m: f"{m.groups()[0]}-{m.groups()[1]}", regex=True
     )
 
+    # looking for ligne where pm is repeated
+    # for eg. 3:00pm-4:30pm
+    rows_with_pm_repeated = df.time.str.contains(r"(?P<A>pm).*(?P=A)")
+    logger.info(f"pm is repeating in rows {rows_with_pm_repeated}")
+
     df.time = df.time.str.replace(" ", "")
     # common typos
+    rows_with_dots = df.time.str.contains(r"\.")
+    logger.info(f"rows with dot in the time {rows_with_dots}")
     df.time = df.time.str.replace(".", ":")
+
+    rows_with_semicols = df.time.str.contains(r"\;")
+    logger.info(f"rows with dot in the time {rows_with_semicols}")
     df.time = df.time.str.replace(";", ":")
 
     # if time is not set, set it to a default time
@@ -107,6 +122,8 @@ def getting_start_end_times(df):
     df.loc[:, time_cols] = split_interval
 
     df.loc[:, "stime"] = df.stime.apply(clean)
+    # no need of meridum in start time.  is deducted from etime meridum
+    # and relative amplitude
     df.loc[:, "etime"] = df.etime.apply(clean)
     logger.info("Completed extraction of start and end times.")
     return df
