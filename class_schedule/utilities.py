@@ -79,7 +79,10 @@ def split_time_interval(time_inter: str):
 
     meridium = "am" if "am" in split[-1] else "pm"
     stime, etime = split
-    assert stime is not None, f"time_inter={time_inter}, stime={stime}"
+    assert stime is not None, f"Trying to split time_inter={time_inter}, stime={stime}"
+
+    # sometime stime has a meridium attached to it, which is not correct.
+    stime = stime.replace("am", "").replace("pm", "")    
     etime = etime.replace("am", "").replace("pm", "")
     data = {"stime": stime, "etime": etime, "meridium": meridium}
 
@@ -135,16 +138,20 @@ def get_datetimes(row):
         else:
             meridium = "pm"
 
-    if shour == 12:
-        stimedt = dt.datetime.strptime(stime + "pm", "%I:%M%p")
-        etimedt = dt.datetime.strptime(etime + "pm", "%I:%M%p")
-    elif (ehour == 12 and shour < 12) or (shour > ehour):
-        stimedt = dt.datetime.strptime(stime + "am", "%I:%M%p")
-        etimedt = dt.datetime.strptime(etime + "pm", "%I:%M%p")
-    elif shour < ehour:
-        stimedt = dt.datetime.strptime(stime + meridium, "%I:%M%p")
-        etimedt = dt.datetime.strptime(etime + meridium, "%I:%M%p")
-
+    stimedt, etimedt = None, None
+    try:
+        if shour == 12:
+            stimedt = dt.datetime.strptime(stime + "pm", "%I:%M%p")
+            etimedt = dt.datetime.strptime(etime + "pm", "%I:%M%p")
+        elif (ehour == 12 and shour < 12) or (shour > ehour):
+            stimedt = dt.datetime.strptime(stime + "am", "%I:%M%p")
+            etimedt = dt.datetime.strptime(etime + "pm", "%I:%M%p")
+        elif shour < ehour:
+            stimedt = dt.datetime.strptime(stime + meridium, "%I:%M%p")
+            etimedt = dt.datetime.strptime(etime + meridium, "%I:%M%p")
+    except ValueError as va:
+        logger.exception(f">>>> 'row={row} not converted.'")
+    
     return (stimedt, etimedt)
 
 
