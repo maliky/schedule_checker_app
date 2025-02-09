@@ -178,17 +178,21 @@ def add_course_id_year_college(df):
     df.loc[:, "year"] = df.course_no.apply(lambda x: years[str(x)[0]])
 
     college_cols = ["cidno_sess", "course_title", "year"]
+    not_in_curriculum_courses = []
+    for k, s in df[college_cols].T.items():
+        try:
+            df.loc[k, "college"] = course_colleged[tuple(s)]
+        except KeyError as ke:
+            not_in_curriculum_courses.append(ke)
+            pass
 
-    try:
-        df.loc[:, "college"] = df.loc[:, college_cols].apply(
-            lambda s: course_colleged[tuple(s)], axis=1
+    if not_in_curriculum_courses:
+        logger.warning(
+            f"Unmapped course encountered: {not_in_curriculum_courses}\n>> It is not a course that was"
+            " seen before.  We need to update the course_colleged variable in"
+            " file settings.py <<"
         )
 
-    except KeyError as ke:
-        msg = f">> {ke} is not a course that was seen before.  We need to update the course_colleged variable in file settings.py <<"
-        logger.warning(f"Unmapped course encountered: {e}")
-        logger.warning(msg)
-        pass
     logger.info("Completed generation of course IDs and assignment of colleges.")
     return df
 
