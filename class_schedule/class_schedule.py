@@ -71,7 +71,7 @@ def clean_and_harmonize_times(df):
     df.time = df.time.str.lower()
     # we replace 'noon' with 'pm' to later ease the convertion of time in dt.
     # noon is not a meridium
-    df.time = df.time.str.replace("noon", "pm")
+    df.time = df.time.str.replace("no?o?n?", "pm", regex=True)
 
     #  df.loc[354, 'time'] = df.loc[354].time.split('/')[1]
     # add a '-' between two digits separated by a space
@@ -87,17 +87,22 @@ def clean_and_harmonize_times(df):
     df.time = df.time.str.replace(" ", "")
     # common typos
     rows_with_dots = df.time.str.contains(r"\.")
-    logger.info(f"rows with dot in the time {rows_with_dots}")
+    logger.info(f"rows with . in the time {rows_with_dots}")
     df.time = df.time.str.replace(".", ":")
 
     rows_with_semicols = df.time.str.contains(r"\;")
-    logger.info(f"rows with dot in the time {rows_with_semicols}")
+    logger.info(f"rows with ; in the time {rows_with_semicols}")
     df.time = df.time.str.replace(";", ":")
 
     # if time is not set, set it to a default time
     default_time = "01:01-02:02am"
     df.loc[:, "time"] = df.time.fillna(default_time)
     df.loc[:, "time"] = df.time.str.replace("tba", default_time)
+
+    # in the roster times we have time finishing with p
+    df.loc[:, "time"] = df.time.str.replace(
+        "(.*)p$", lambda m: f"{m.groups()[0]}pm", regex=True
+    )
 
     no_meridium = ~df.time.apply(time_filter)
     df.loc[no_meridium, "time"] = df.loc[no_meridium, "time"].apply(lambda x: x + "pm")
@@ -150,7 +155,7 @@ def add_duration(df):
     return df
 
 
-def add_course_id_year_college(df):
+def add_course_id_year_college(df, course_colleged=course_colleged):
     """Generate unique course IDs, determine year level, and assign college.
     Parameters:
     - df (pd.DataFrame): Schedule DataFrame.
@@ -209,9 +214,7 @@ def expand_days(df):
 
     logger.info("Expanding days into separate rows.")
 
-    tdf = pd.concat([expand_row(row) for _, row in df.iterrows()]).reset_index(
-        drop=True
-    )
+    tdf = pd.concat([expand_row(row) for _, row in df.iterrows()]).reset_index(drop=True)
     logger.info("Completed expansion of days.")
     return tdf
 
