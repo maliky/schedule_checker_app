@@ -75,15 +75,19 @@ def split_time_interval(time_inter: str):
     """
     split = time_inter.split("-")
 
-    assert len(split) == 2, f"split={split}"
+    # exemple that we have 2:404:10pm'
+    assert len(split) == 2, f"split='{split}', time_inter='{time_inter}'"
 
-    meridium = "am" if "am" in split[-1] else "pm"
+    # we use 'a' instead of 'am' to be more robust. we encountered
+    # time with just 'a' instead of 'am'.
+    meridium = "am" if "a" in split[-1] else "pm"
     stime, etime = split
     assert stime is not None, f"Trying to split time_inter={time_inter}, stime={stime}"
+    #import ipdb; ipdb.set_trace()
 
     # sometime stime has a meridium attached to it, which is not correct.
-    stime = stime.replace("am", "").replace("pm", "")    
-    etime = etime.replace("am", "").replace("pm", "")
+    stime = re.sub('(?:a|p)?(m|n)?','', stime)  # robust
+    etime = re.sub('(?:a|p)?(m|n)?','', etime)
     data = {"stime": stime, "etime": etime, "meridium": meridium}
 
     return pd.Series(data)
