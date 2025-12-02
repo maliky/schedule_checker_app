@@ -11,6 +11,7 @@ decorator==5.1.1
 et_xmlfile==2.0.0
 executing==2.2.0
 Flask==3.1.0
+gunicorn==23.0.0
 ipython==8.31.0
 ipywidgets==8.1.5
 itsdangerous==2.2.0
@@ -45,7 +46,6 @@ stack-data==0.6.3
 traitlets==5.14.3
 typing_extensions==4.12.2
 tzdata==2025.1
-uWSGI==2.0.28
 vega-datasets==0.9.0
 vegafusion==2.0.1
 vl-convert-python==1.7.0

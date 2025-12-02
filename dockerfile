@@ -1,26 +1,27 @@
 FROM python:3.11-slim
 
-ENV FLASK_ENV=production
+
+ENV PYTHONPATH=/app \
+    FLASK_ENV=production
 
 
-# Installer les dépendances système
+# Instal system dependencies
 RUN apt-get update && apt-get install -y \
-    nginx \
     build-essential \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Définir le répertoire de travail
+# Define working dir
 WORKDIR /app
-ENV PYTHONPATH=/app
 
-# Copier les fichiers nécessaires
+# Copy the necessary files to the app in the containeur
 COPY . /app
 
-# Installer les dépendances Python
+# install python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Exposer les ports nécessaires
-EXPOSE 80 443
+# mke 9090 port visible from outside the container
+EXPOSE 9090
 
-# Lancer les services Nginx et Gunicorn
-CMD ["uwsgi", "--ini", "conf/uwsgi.ini"]
+# Launch the app in production mode with the lightweight gunicorn server (check the run.sh file)
+CMD ["bash", "./run.sh", "--prod"]
+

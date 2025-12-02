@@ -31,7 +31,7 @@ logging.basicConfig(filename="app.log", level=logging.INFO)
 ################
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", titre="Upload Your Schedule")
+    return render_template("index.html", titre="William V.S. Tubman Online Schedule Checker")
 
 
 @app.route("/upload", methods=["POST"])
@@ -52,7 +52,7 @@ def upload_file():
         processed_df = process_schedule(fname, sheet_name)
 
         # Optionally save the processed file
-        processed_path = os.path.join(app.config["PROCESSED_FOLDER"], "schedule.xlsx")
+        processed_path = os.path.join(app.config["PROCESSED_FOLDER"], "processed_schedule.xlsx")
 
         processed_df.to_excel(processed_path, index=False)
 
@@ -80,6 +80,24 @@ def view_room_chart():
     return render_template("room_final_chart.html")
 
 
+@app.route("/download_processed", methods=["GET"])
+def download_processed_file():
+    """
+    Route to download the processed schedule file.
+    """
+    processed_path = os.path.join(app.config["PROCESSED_FOLDER"], "processed_schedule.xlsx")
+
+    if not os.path.exists(processed_path):
+        return (
+            "No processed file available. Please upload and process a schedule first.",
+            404,
+        )
+
+    return send_file(
+        processed_path, as_attachment=True, download_name="processed_schedule.xlsx"
+    )
+
+
 if __name__ == "__main__":
     # app.run(debug=True)
-    app.run(host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=9090)

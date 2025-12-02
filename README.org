@@ -31,8 +31,9 @@ schedule_checker_app/
 └── README.org              # This file
 #+END_SRC
 
-** Running Locally
-1. Clone the repository:
+** Getting the code
+
+Clone the repository:
    #+BEGIN_SRC bash
    git clone https://github.com/maliky/schedule_checker_app.git
    cd schedule_checker_app
