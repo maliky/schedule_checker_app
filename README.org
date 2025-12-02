@@ -15,77 +15,56 @@ A lightweight Flask-based web application to process and visualize class schedul
 - Pandas
 - Altair
 - uWSGI (for production deployment)
+- Docker (for containerized/production runs)
 
 ** Project Structure
 #+BEGIN_SRC text
 schedule_checker_app/
-├── class_schedule
-│   ├── class_schedule.py
-│   ├── helper.py
-│   ├── main.py
-│   ├── settings.py
-│   ├── utilities.py
-│   └── visualisation.py
-├── dockerfile
-├── online_schedule_checker.py
-├── processed
-├── README.org
-├── requirements.txt
-├── run.sh
-├── static
-│   ├── css
-│   │   └── index.css
-│   └── js
-│       └── index.js
-└── templates
-    ├── base.html
-    ├── index.html
-    ├── instructor_final_chart.html
-    ├── room_final_chart.html
-    └── view_charts.html
-
+├── class_schedule/         # Core schedule processing logic
+├── conf/                   # Configuration files (e.g., uWSGI)
+├── processed/              # Processed files (output directory)
+├── static/                 # Static assets (CSS, JS, etc.)
+├── templates/              # HTML templates for Flask
+├── requirements.txt        # Python dependencies
+├── Dockerfile              # Docker configuration for deployment
+├── run.sh                  # Helper script for dev/prod workflows
+└── README.org              # This file
 #+END_SRC
 
 ** Getting the code
 
 Clone the repository:
    #+BEGIN_SRC bash
-   git clone https://github.com/your-username/schedule_checker_app.git
+   git clone https://github.com/maliky/schedule_checker_app.git
    cd schedule_checker_app
    #+END_SRC
 
-** Running the app in localy in dev mode   
-1. Create a virtual environment and install dependencies:
-   #+BEGIN_SRC bash
-   python3 -m venv schedule
-   source schedule/bin/activate
-   pip install -r requirements.txt
-   #+END_SRC
-   
-3. Run the app:
-   #+BEGIN_SRC bash
-     run.sh --dev  # dev
-   #+END_SRC
+2. Create a virtual environment and install dependencies:
+    #+BEGIN_SRC bash
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    #+END_SRC
 
-3. Access the app at:
-   http://localhost:5000  # dev
+3. Start the development server (Flask runs on http://127.0.0.1:5000):
+    #+BEGIN_SRC bash
+    ./run.sh dev
+    #+END_SRC
 
-   
-** Running with Docker for production
+4. Visit http://localhost:5000 in your browser to use the app.
 
-1. Build the Docker image:
+** Running with Docker / Production
+`run.sh` also handles the production workflow by building and starting the dockerized application. By default the container exposes the uWSGI server on port 8080.
+
+1. Build and run using the helper script:
    #+BEGIN_SRC bash
-   docker build -t schedule_checker_app .
+   ./run.sh prod
    #+END_SRC
 
-2. Run the container:
+2. (Optional) Equivalent manual commands if you would like direct control:
    #+BEGIN_SRC bash
-   docker run -p 9090:9090 schedule_checker_app
+   docker build -t schedule_checker_app:latest .
+   docker run --rm -p 8080:8080 schedule_checker_app:latest
    #+END_SRC
 
-To use the docker in dev mode change the dockerfile line `CMD ["bash", "./run.sh", "--prod"]` to `CMD ["bash", "./run.sh", "--dev"]` before runing the docker with the above line.
-   
-3. Access the app at:
-   http://your-ip:9090  # prod
-
-
+Make sure Docker is installed locally before launching the production target.
