@@ -35,6 +35,7 @@ def process_schedule(fname, sheet_name):
         index_col=0,
         names=[
             "course_code",
+            "college",
             "course_no",
             "course_title",
             "credit",

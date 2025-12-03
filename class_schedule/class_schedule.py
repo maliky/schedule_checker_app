@@ -180,7 +180,16 @@ def add_course_id_year_college(df, course_colleged=course_colleged):
         "5": "Senior",
     }
 
-    df.loc[:, "year"] = df.course_no.apply(lambda x: years[str(x)[0]])
+    def _infer_year(course_no):
+        """Map the first numeric digit of course_no to a year label."""
+        if pd.isna(course_no):
+            return "Unknown"
+        digits = [ch for ch in str(course_no) if ch.isdigit()]
+        if not digits:
+            return "Unknown"
+        return years.get(digits[0], "Unknown")
+
+    df.loc[:, "year"] = df.course_no.apply(_infer_year)
 
     college_cols = ["cidno_sess", "course_title", "year"]
     not_in_curriculum_courses = []
@@ -288,6 +297,10 @@ def special_applied_epidemiology_course(df: pd.DataFrame):
         pd.DataFrame: The updated DataFrame with the special case courses added.
     """
     special_course = df.loc[df.time.str.contains("/"), :].reset_index()
+    if special_course.empty:
+        logger.debug("No course contains /, skipping special handling.")
+        return df
+
     logger.debug(
         "we are hardcoding some harmonization rules pertaining to this course.  Should be on tuesday and saturday"
     )

@@ -1,3 +1,4 @@
+codex resume 019adf81-373b-7351-92a0-0365e34bc0a1
 * Schedule Checker App
 A lightweight Flask-based web application to process and visualize class schedules. This app allows users to upload schedule files, process them, and generate interactive visualizations for analysis.
 

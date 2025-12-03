@@ -1,3 +1,6 @@
+templates/*
+processed/*
+.python*
 *cache__*
 *~
 Data*
