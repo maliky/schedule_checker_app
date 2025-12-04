@@ -68,41 +68,44 @@ def clean_and_harmonize_times(df):
     """
     logger.info("cleaning and harmonizing times.")
 
-    df.time = df.time.str.lower()
-    # we replace 'noon' with 'pm' to later ease the convertion of time in dt.
-    # noon is not a meridium
-    df.time = df.time.str.replace("no?o?n?", "pm", regex=True)
+    time_series = df.time.astype(str).str.lower()
+    # normalize unicode dashes before further parsing
+    time_series = time_series.str.replace("\u2013", "-", regex=False)
+    time_series = time_series.str.replace("\u2014", "-", regex=False)
 
-    #  df.loc[354, 'time'] = df.loc[354].time.split('/')[1]
-    # add a '-' between two digits separated by a space
-    df.time = df.time.str.replace(
+    # we replace "noon" with "pm" to later ease the convertion of time in dt.
+    time_series = time_series.str.replace("no?o?n?", "pm", regex=True)
+
+    # handle stray duplicates like "pmpm" or "ampm"
+    time_series = time_series.str.replace("pmpm", "pm", regex=False)
+    time_series = time_series.str.replace("ampm", "am", regex=False)
+
+    time_series = time_series.str.replace(
         r"(\d) (\d)", lambda m: f"{m.groups()[0]}-{m.groups()[1]}", regex=True
     )
 
-    # looking for ligne where pm is repeated
-    # for eg. 3:00pm-4:30pm
-    rows_with_pm_repeated = df.time.str.contains(r"(?P<A>pm).*(?P=A)")
+    rows_with_pm_repeated = time_series.str.contains(r"(?P<A>pm).*(?P=A)")
     logger.info(f"pm is repeating in rows {rows_with_pm_repeated}")
 
-    df.time = df.time.str.replace(" ", "")
-    # common typos
-    rows_with_dots = df.time.str.contains(r"\.")
+    time_series = time_series.str.replace(" ", "")
+    rows_with_dots = time_series.str.contains(r"\.")
     logger.info(f"rows with . in the time {rows_with_dots}")
-    df.time = df.time.str.replace(".", ":")
+    time_series = time_series.str.replace(".", ":")
 
-    rows_with_semicols = df.time.str.contains(r"\;")
+    rows_with_semicols = time_series.str.contains(r"\;")
     logger.info(f"rows with ; in the time {rows_with_semicols}")
-    df.time = df.time.str.replace(";", ":")
+    time_series = time_series.str.replace(";", ":")
 
-    # if time is not set, set it to a default time
     default_time = "01:01-02:02am"
-    df.loc[:, "time"] = df.time.fillna(default_time)
-    df.loc[:, "time"] = df.time.str.replace("tba", default_time)
+    time_series = time_series.replace({"nan": pd.NA, "none": pd.NA})
+    time_series = time_series.fillna(default_time)
+    time_series = time_series.str.replace("tba", default_time)
 
-    # in the roster times we have time finishing with p
-    df.loc[:, "time"] = df.time.str.replace(
+    time_series = time_series.str.replace(
         "(.*)p$", lambda m: f"{m.groups()[0]}pm", regex=True
     )
+
+    df.loc[:, "time"] = time_series
 
     no_meridium = ~df.time.apply(time_filter)
     df.loc[no_meridium, "time"] = df.loc[no_meridium, "time"].apply(lambda x: x + "pm")
