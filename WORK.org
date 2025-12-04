@@ -1,0 +1,169 @@
+Note : we are only interested in the in "FINAL EXAM SCHEDULE" and "GENERAL SCHEDULE" sheets
+
+** Raw extraction
+# > make sure we have the required excel parser
+# > make this snippet below a small helper
+#+BEGIN_SRC python
+  #> have some data wrangin whith something like
+  df = df.apply(lambda s:s.str.strip().str.replace(r'\s+', ' ', regex=True))
+  #> and renove that strip code from the rest of the code latter
+  
+  def get_no_index(raw):
+       def _f(row):
+           return row.astype(str).str.contains("N0.",case=False, na=False)   
+      return raw.apply(get_no_index).any(axis=1)
+  
+  _f(row).any(axis=1)
+  
+   def load_exam_sheet(xl: pd.ExcelFile, sheet: str) -> pd.DataFrame:
+       raw = xl.parse(sheet, header=None)
+       header_idx = raw.index[get_no_index(raw)][0]
+       header = (
+           raw.iloc[header_idx]
+           #> is fillna ffill necessary explain
+                .fillna(method="ffill")
+                # > do the str.strip() on all data before reaching here.
+                # > and the replace
+                .str.strip()
+                .str.replace(r"\s+", " ", regex=True)
+            )
+            df = (
+                raw.iloc[header_idx + 2 :]
+                .dropna(how="all")
+                .reset_index(drop=True)
+            )
+            df.columns = header
+            return df
+  
+#+END_SRC
+      - Works for both the general exam sheet and the ACCESS-only tabs, because
+        each uses the “N0.” row to introduce the table.
+** Column harmonization
+
+#+BEGIN_SRC python
+  COLUMN_MAP = {
+      "N0.": "no",
+      "Course Code ": "course_code",
+      "Course N0.": "course_no",
+      "Course Title": "course_title",
+      "Sec": "section",
+      "Day & Time": "day_time",
+      "Location/Room": "location",
+      "Instructor/ Proctor": "instructor",
+      "Exam Day ": "exam_date",
+      "Exam Date": "exam_date",  # ACCESS sheet
+      "Remedial Program Schedule": "program",  # ignored later
+      "Time ": "time",
+  }
+  
+  
+  def normalize_columns(df, sheet):
+      # once again the strip of the columns header should be done at an earlier wrangling cleaning phase,
+      df = df.rename(columns={c: COLUMN_MAP.get(c, c.lower().strip()) for c in df.columns})
+      df["college"] = sheet  # or parse from the title row if you want the official name
+      # not needed for the 2 sheets under investigation
+      df = df.drop(
+          columns=[c for c in df.columns if c.startswith("Unnamed")], errors="ignore"
+      )
+      df = df.dropna(subset=["course_code", "course_no"], how="all")
+      return df
+#+END_SRC
+** Derive exam timestamps (reuses existing utilities)
+
+#+BEGIN_SRC python
+  from class_schedule.utilities import clean, split_time_interval, get_datetimes
+  
+  
+  # > do not write     df[["sts", "ets"]] = datetimes
+  # > but     df.loc[:,["sts", "ets"]] = datetimes
+  # > apply this consitently
+  
+  
+  def parse_exam_times(df):
+      def _split_day_time(value):
+          if not isinstance(value, str):
+              return None, None
+          parts = value.split(" ", 1)
+          day = parts[0]
+          time_str = parts[1].replace(" ", "")
+          return day, time_str
+  
+      df[["weekday_text", "time"]] = df["day_time"].apply(
+          lambda v: pd.Series(_split_day_time(v))
+      )
+      # > integrate this into clean_and_harmonize times
+      df["time"] = df["time"].str.replace("–", "-")
+      df["time"] = df["time"].str.replace("pmPM", "pm", regex=False)
+      df = clean_and_harmonize_times(df)  # from class_schedule.class_schedule
+      times = df["time"].apply(split_time_interval).apply(pd.Series)
+      times.columns = ["stime", "etime", "meridium"]
+  
+      # > use loc. It is the best practice
+      df.loc[:, ["stime", "etime", "meridium"]] = times
+      datetimes = df[["stime", "etime", "meridium"]].apply(
+          get_datetimes, axis=1, result_type="expand"
+      )
+      datetimes.columns = ["sts", "ets"]
+  
+      df[["sts", "ets"]] = datetimes
+  
+      # Overwrite the date portion with the actual exam date column
+      df["exam_date"] = pd.to_datetime(df["exam_date"]).dt.date
+      df["sts"] = df.apply(
+          lambda row: pd.Timestamp.combine(row["exam_date"], row["sts"].time()), axis=1
+      )
+      df["ets"] = df.apply(
+          lambda row: pd.Timestamp.combine(row["exam_date"], row["ets"].time()), axis=1
+      )
+      return df
+#+END_SRC   
+      - This lets us keep the same Vega-ready sts/ets columns your visualization pipeline expects.
+      - The weekday_text column becomes the label used in Vega, while sts.dt.day_name() still produces the canonical weekday.
+
+** Assemble a Vega-friendly frame
+#+BEGIN_SRC python
+  def build_exam_records(df):
+      df["start_time"] = df["sts"].dt.strftime("%H:%M")
+      df["end_time"] = df["ets"].dt.strftime("%H:%M")
+      df["weekday"] = df["sts"].dt.day_name()
+      df["cid"] = df.apply(
+          lambda row: f"{row.course_code}_{row.course_no}_exam_{row.section}".lower(),
+          axis=1,
+      )
+      return df.loc[
+          :,
+          [
+              "sts",
+              "ets",
+              "weekday",
+              "course_code",
+              "course_no",
+              "course_title",
+              "section",
+              "instructor",
+              "location",
+              "college",
+              "start_time",
+              "end_time",
+              "exam_date",
+              "cid",
+          ],
+      ]
+#+END_SRC
+
+** Entry point
+
+#+BEGIN_SRC python
+  def process_exam_workbook(path: str, sheets=None):
+      xl = pd.ExcelFile(path)
+      selected = sheets or ["FINAL EXAM SCHEDULE"]  # extend as needed
+      frames = [
+          build_exam_records(
+              parse_exam_times(normalize_columns(load_exam_sheet(xl, sheet), sheet))
+          )
+          for sheet in selected
+      ]
+      return pd.concat(frames, ignore_index=True)
+#+END_SRC
+
+
