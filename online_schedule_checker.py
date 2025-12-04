@@ -7,6 +7,7 @@ from pathlib import Path
 
 from class_schedule.visualisation import create_visualizations
 from class_schedule.helper import process_schedule
+from class_schedule.exam_schedule import process_exam_workbook
 import logging
 from dotenv import load_dotenv
 
@@ -49,8 +50,12 @@ def upload_file():
         if not fname.filename.endswith((".xlsx", ".xls")):
             return "Invalid file type. Please upload an Excel file.", 400
 
-        # Load into pandas
-        processed_df = process_schedule(fname, sheet_name)
+        normalized_sheet = (sheet_name or "").strip()
+
+        if normalized_sheet and "exam" in normalized_sheet.lower():
+            processed_df = process_exam_workbook(fname, sheet=normalized_sheet)
+        else:
+            processed_df = process_schedule(fname, normalized_sheet or "GENERAL SCHEDULE")
 
         # Optionally save the processed file
         processed_path = os.path.join(app.config["PROCESSED_FOLDER"], "processed_schedule.xlsx")

@@ -1,4 +1,156 @@
-Note : we are only interested in the in "FINAL EXAM SCHEDULE" and "GENERAL SCHEDULE" sheets
+
+* <2025-12-04 jeu. 19:43>  General Schedule
+you can look for the row with No. and then take the data from them but remove the row where all is na (the next one for example).
+make sure the header are correctly translated.  This should help solve this error
+'''(gen) mlk@leur ~/TU/Academics/Schedules/schedule_checker_app $ ./run.sh -d
+Running in development mode...
+ * Serving Flask app 'online_schedule_checker.py'
+ * Debug mode: off
+2025-12-04 19:45:35,734 MainThread~20 /_internal.py@97@_log/ WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+2025-12-04 19:45:35,734 MainThread~20 /_internal.py@97@_log/ Press CTRL+C to quit
+2025-12-04 19:45:46,350 Thread-1 (process_request_thread)~20 /class_schedule.py@36@general_cleaning/ Starting general cleaning of the data.
+2025-12-04 19:45:46,370 Thread-1 (process_request_thread)~20 /class_schedule.py@58@general_cleaning/ Completed general cleaning.
+2025-12-04 19:45:46,370 Thread-1 (process_request_thread)~20 /helper.py@54@process_schedule/ Completed general cleaning
+2025-12-04 19:45:46,370 Thread-1 (process_request_thread)~20 /class_schedule.py@73@clean_and_harmonize_times/ cleaning and harmonizing times.
+/home/mlk/TU/Academics/Schedules/schedule_checker_app/class_schedule/class_schedule.py:91: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
+  rows_with_pm_repeated = time_series.str.contains(r"(?P<A>pm).*(?P=A)")
+2025-12-04 19:45:46,379 Thread-1 (process_request_thread)~20 /class_schedule.py@92@clean_and_harmonize_times/ pm is repeating in rows no
+3      False
+4      False
+5      False
+6      False
+7      False
+       ...  
+363    False
+364    False
+365    False
+366    False
+367    False
+Name: time, Length: 361, dtype: bool
+2025-12-04 19:45:46,381 Thread-1 (process_request_thread)~20 /class_schedule.py@96@clean_and_harmonize_times/ rows with . in the time no
+3      False
+4      False
+5      False
+6      False
+7      False
+       ...  
+363    False
+364    False
+365    False
+366    False
+367    False
+Name: time, Length: 361, dtype: bool
+2025-12-04 19:45:46,383 Thread-1 (process_request_thread)~20 /class_schedule.py@100@clean_and_harmonize_times/ rows with ; in the time no
+3      False
+4      False
+5      False
+6      False
+7      False
+       ...  
+363    False
+364    False
+365    False
+366    False
+367    False
+Name: time, Length: 361, dtype: bool
+2025-12-04 19:45:46,395 Thread-1 (process_request_thread)~20 /class_schedule.py@116@clean_and_harmonize_times/ Completed time cleaning and harmonization.
+2025-12-04 19:45:46,395 Thread-1 (process_request_thread)~20 /helper.py@57@process_schedule/ Completed cleaning and harmonizing times
+2025-12-04 19:45:46,395 Thread-1 (process_request_thread)~20 /helper.py@59@process_schedule/ Starting with applied epidemiology a special course to split in 2
+2025-12-04 19:45:46,398 Thread-1 (process_request_thread)~20 /helper.py@61@process_schedule/ Completed special applied epidemiology course
+2025-12-04 19:45:46,398 Thread-1 (process_request_thread)~20 /class_schedule.py@130@getting_start_end_times/ Extracting start and end times from the time column.
+2025-12-04 19:45:46,553 Thread-1 (process_request_thread)~20 /class_schedule.py@140@getting_start_end_times/ Completed extraction of start and end times.
+2025-12-04 19:45:46,554 Thread-1 (process_request_thread)~20 /helper.py@64@process_schedule/ Completed getting start and end times
+2025-12-04 19:45:46,554 Thread-1 (process_request_thread)~20 /class_schedule.py@151@add_duration/ Calculating course durations.
+2025-12-04 19:45:46,658 Thread-1 (process_request_thread)~20 /class_schedule.py@161@add_duration/ Completed calculation of course durations.
+2025-12-04 19:45:46,658 Thread-1 (process_request_thread)~20 /helper.py@67@process_schedule/ Completed adding duration
+2025-12-04 19:45:46,658 Thread-1 (process_request_thread)~40 /online_schedule_checker.py@74@upload_file/ An error occured: 'DataFrame' object has no attribute 'course_code'
+Traceback (most recent call last):
+  File "/mnt/backup/Prog/Git/schedule_checker_app/online_schedule_checker.py", line 58, in upload_file
+    processed_df = process_schedule(fname, normalized_sheet or "GENERAL SCHEDULE")
+  File "/home/mlk/TU/Academics/Schedules/schedule_checker_app/class_schedule/helper.py", line 69, in process_schedule
+    df = harmonize_course_codes(df)
+  File "/home/mlk/TU/Academics/Schedules/schedule_checker_app/class_schedule/class_schedule.py", line 339, in harmonize_course_codes
+    df.loc[:, "course_code"] = df.course_code.apply(
+                               ^^^^^^^^^^^^^^
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/pandas/core/generic.py", line 6299, in __getattr__
+    return object.__getattribute__(self, name)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+AttributeError: 'DataFrame' object has no attribute 'course_code'. Did you mean: 'course_no'?
+2025-12-04 19:45:46,666 Thread-1 (process_request_thread)~40 /app.py@875@log_exception/ Exception on /upload [POST]
+Traceback (most recent call last):
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/flask/app.py", line 920, in full_dispatch_request
+    return self.finalize_request(rv)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/flask/app.py", line 939, in finalize_request
+    response = self.make_response(rv)
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/flask/app.py", line 1212, in make_response
+    raise TypeError(
+    ...<3 lines>...
+    )
+TypeError: The view function for 'upload_file' did not return a valid response. The function either returned None or ended without a return statement.
+2025-12-04 19:45:46,669 Thread-1 (process_request_thread)~20 /_internal.py@97@_log/ 127.0.0.1 - - [04/Dec/2025 19:45:46] "POST /upload HTTP/1.1" 500 -
+
+
+''' happening this time when loading the 'GENERAL SCHEDULE' of 'Data/FINAL SCHEDULE SEMESTEWR II 2024-2025_v2.xlsx'
+
+
+* <2025-12-04 jeu. 19:29>
+  I've updated the table by removing the unecessary row so now the row 0 is the header row.
+  secondly I renamed the schedule file to Data/semI_final_exam_schedule_ay_25-26.xlsx.
+
+  Take this in account to adapte the code to first try load the table using row 0 as header and if it doesn't work load the row 9 (or 8 what ever was done before).
+
+* <2025-12-04 jeu. 19:15> Loading Sheet FINAL EXAM SCHEDULE of semI_final_exam_schedule_ay_25-26.xlsx 
+  (gen) mlk@leur ~/TU/Academics/Schedules/schedule_checker_app $ ./run.sh -d
+Running in development mode...
+ * Serving Flask app 'online_schedule_checker.py'
+ * Debug mode: off
+2025-12-04 19:12:28,258 MainThread~20 /_internal.py@97@_log/ WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+2025-12-04 19:12:28,258 MainThread~20 /_internal.py@97@_log/ Press CTRL+C to quit
+2025-12-04 19:12:42,460 Thread-1 (process_request_thread)~20 /_internal.py@97@_log/ 127.0.0.1 - - [04/Dec/2025 19:12:42] "GET / HTTP/1.1" 200 -
+2025-12-04 19:12:42,592 Thread-3 (process_request_thread)~20 /_internal.py@97@_log/ 127.0.0.1 - - [04/Dec/2025 19:12:42] "GET /static/js/index.js HTTP/1.1" 304 -
+2025-12-04 19:12:42,593 Thread-2 (process_request_thread)~20 /_internal.py@97@_log/ 127.0.0.1 - - [04/Dec/2025 19:12:42] "GET /static/css/index.css HTTP/1.1" 304 -
+2025-12-04 19:12:43,329 Thread-4 (process_request_thread)~20 /_internal.py@97@_log/ 127.0.0.1 - - [04/Dec/2025 19:12:43] "GET /favicon.ico HTTP/1.1" 404 -
+2025-12-04 19:14:47,219 Thread-5 (process_request_thread)~20 /class_schedule.py@36@general_cleaning/ Starting general cleaning of the data.
+2025-12-04 19:14:47,225 Thread-5 (process_request_thread)~40 /online_schedule_checker.py@69@upload_file/ An error occured: single positional indexer is out-of-bounds
+Traceback (most recent call last):
+  File "/mnt/backup/Prog/Git/schedule_checker_app/online_schedule_checker.py", line 53, in upload_file
+    processed_df = process_schedule(fname, sheet_name)
+  File "/home/mlk/TU/Academics/Schedules/schedule_checker_app/class_schedule/helper.py", line 53, in process_schedule
+    df = general_cleaning(df)
+  File "/home/mlk/TU/Academics/Schedules/schedule_checker_app/class_schedule/class_schedule.py", line 52, in general_cleaning
+    if isinstance(df[c].iloc[0], str):
+                  ~~~~~~~~~~^^^
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/pandas/core/indexing.py", line 1191, in __getitem__
+    return self._getitem_axis(maybe_callable, axis=axis)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/pandas/core/indexing.py", line 1752, in _getitem_axis
+    self._validate_integer(key, axis)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/pandas/core/indexing.py", line 1685, in _validate_integer
+    raise IndexError("single positional indexer is out-of-bounds")
+IndexError: single positional indexer is out-of-bounds
+2025-12-04 19:14:47,233 Thread-5 (process_request_thread)~40 /app.py@875@log_exception/ Exception on /upload [POST]
+Traceback (most recent call last):
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/flask/app.py", line 920, in full_dispatch_request
+    return self.finalize_request(rv)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/flask/app.py", line 939, in finalize_request
+    response = self.make_response(rv)
+  File "/home/mlk/.pyenv/versions/3.13.9/envs/gen/lib/python3.13/site-packages/flask/app.py", line 1212, in make_response
+    raise TypeError(
+    ...<3 lines>...
+    )
+TypeError: The view function for 'upload_file' did not return a valid response. The function either returned None or ended without a return statement.
+2025-12-04 19:14:47,237 Thread-5 (process_request_thread)~20 /_internal.py@97@_log/ 127.0.0.1 - - [04/Dec/2025 19:14:47] "POST /upload HTTP/1.1" 500 -
+
+* Note : we are only interested in the in "FINAL EXAM SCHEDULE" and "GENERAL SCHEDULE" sheets
 
 ** Raw extraction
 # > make sure we have the required excel parser

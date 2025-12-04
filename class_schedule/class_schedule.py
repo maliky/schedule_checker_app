@@ -35,6 +35,10 @@ def general_cleaning(df, logger=logger):
     """
     logger.info("Starting general cleaning of the data.")
 
+    if df.empty:
+        logger.warning("general_cleaning received an empty DataFrame; skipping.")
+        return df
+
     #    l2.info("Supprime les espaces en trop, harmonize la casse.")
     df.columns = [
         c.strip().lower().replace(" ", "_").strip().strip(".") for c in df.columns

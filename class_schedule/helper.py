@@ -25,30 +25,107 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format=LOGFMT)
 
 
+EXPECTED_SCHEDULE_COLUMNS = [
+    "no",
+    "course_code",
+    "college",
+    "course_no",
+    "course_title",
+    "credit",
+    "section",
+    "instructor",
+    "location",
+    "days",
+    "time",
+    "capacity",
+]
+
+COLUMN_ALIASES = {
+    "n0": "no",
+    "no": "no",
+    "course_code": "course_code",
+    "course_code_": "course_code",
+    "course_code__": "course_code",
+    "college": "college",
+    "course_no": "course_no",
+    "course_n0": "course_no",
+    "course_title": "course_title",
+    "credit": "credit",
+    "section": "section",
+    "instructor": "instructor",
+    "location": "location",
+    "location_room": "location",
+    "days": "days",
+    "time": "time",
+    "capacity": "capacity",
+}
+
+
+def _normalize_string_columns(df: pd.DataFrame) -> pd.DataFrame:
+    str_cols = df.select_dtypes(include="object").columns
+    if len(str_cols):
+        df.loc[:, str_cols] = df.loc[:, str_cols].apply(
+            lambda s: s.str.strip().str.replace(r"\s+", " ", regex=True)
+        )
+    return df
+
+
+def _canonical_column_name(value) -> str:
+    if not isinstance(value, str):
+        return value
+    normalized = (
+        value.strip()
+        .lower()
+        .replace("&", "and")
+        .replace("/", "_")
+        .replace(".", "")
+    )
+    normalized = normalized.replace(" ", "_")
+    normalized = normalized.replace("-", "_")
+    normalized = normalized.replace("__", "_")
+    return COLUMN_ALIASES.get(normalized, normalized)
+
+
+def load_general_schedule(fname, sheet_name):
+    raw = pd.read_excel(fname, sheet_name=sheet_name, header=None)
+    raw = _normalize_string_columns(raw)
+
+    first_col = raw.iloc[:, 0].astype(str).str.strip().str.lower()
+    mask = first_col.str.match(r"n[o0]\.?")
+    if not mask.any():
+        raise ValueError(
+            f"Unable to locate header row labeled 'No.' in sheet {sheet_name!r}"
+        )
+
+    header_idx = mask[mask].index[0]
+    header = raw.iloc[header_idx]
+    data = raw.iloc[header_idx + 1 :].dropna(how="all").reset_index(drop=True)
+    data.columns = header
+    data = _normalize_string_columns(data)
+
+    rename_map = {col: _canonical_column_name(col) for col in data.columns}
+    data = data.rename(columns=rename_map)
+
+    missing = [col for col in EXPECTED_SCHEDULE_COLUMNS if col not in data.columns]
+    if missing:
+        logger.warning(
+            "Missing columns %s in sheet %s; filling with NA",
+            missing,
+            sheet_name,
+        )
+        for col in missing:
+            data.loc[:, col] = pd.NA
+
+    data = data.loc[:, EXPECTED_SCHEDULE_COLUMNS]
+    data = data.dropna(subset=["course_code"]).copy()
+    data = data.set_index("no")
+    data.index.name = "no"
+    return data
+
+
 def process_schedule(fname, sheet_name):
 
-    
-    df = pd.read_excel(
-        fname,
-        sheet_name,
-        header=10,
-        index_col=0,
-        names=[
-            "course_code",
-            "college",
-            "course_no",
-            "course_title",
-            "credit",
-            "section",
-            "instructor",
-            "location",
-            "days",
-            "time",
-            "capacity",
-        ],
-    ).dropna()
-
-    df.index.name = "no"
+    df = load_general_schedule(fname, sheet_name)
 
     df = general_cleaning(df)
     logger.info("Completed general cleaning")

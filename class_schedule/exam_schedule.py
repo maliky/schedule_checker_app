@@ -59,7 +59,23 @@ def get_no_index(raw: pd.DataFrame) -> pd.Series:
 
 
 def load_exam_sheet(xl: pd.ExcelFile, sheet: str) -> pd.DataFrame:
-    """Load a sheet and slice the table that starts at the "N0." marker."""
+    """Load a sheet and slice the table, preferring native headers when present."""
+
+    def _looks_like_header(columns: Iterable) -> bool:
+        normalized = [str(col).strip().lower() for col in columns]
+        has_course_code = any("course" in col and "code" in col for col in normalized)
+        has_course_title = any("course" in col and "title" in col for col in normalized)
+        has_day_time = any("day" in col and "time" in col for col in normalized)
+        return has_course_code and has_course_title and has_day_time
+
+    try:
+        direct = xl.parse(sheet, header=0)
+        direct = _normalize_string_columns(direct).dropna(how="all")
+        if _looks_like_header(direct.columns):
+            logger.info("Loaded %s rows from sheet %s using header row 0", len(direct), sheet)
+            return direct.reset_index(drop=True)
+    except Exception as exc:  # pragma: no cover
+        logger.debug("Header-row load failed for %s: %s", sheet, exc)
 
     raw = xl.parse(sheet, header=None)
     raw = _normalize_string_columns(raw)
@@ -78,7 +94,7 @@ def load_exam_sheet(xl: pd.ExcelFile, sheet: str) -> pd.DataFrame:
     df.columns = header
     df = df.loc[:, ~df.columns.duplicated()]
     df = _normalize_string_columns(df)
-    logger.info("Loaded %s rows from sheet %s", len(df), sheet)
+    logger.info("Loaded %s rows from sheet %s using fallback header detection", len(df), sheet)
     return df
 
 
@@ -185,21 +201,16 @@ def build_exam_records(df: pd.DataFrame) -> pd.DataFrame:
     ]
 
 
-def process_exam_workbook(path: str, sheets: Optional[Iterable[str]] = None) -> pd.DataFrame:
-    """End-to-end processing entry point for exam workbook parsing."""
+def process_exam_workbook(path: str, sheet: Optional[str] = None) -> pd.DataFrame:
+    """Process a single exam sheet into a Vega-ready DataFrame."""
+
+    if not sheet:
+        raise ValueError("A sheet name must be provided for exam processing.")
 
     xl = pd.ExcelFile(path)
-    selected = list(sheets or ["FINAL EXAM SCHEDULE", "GENERAL SCHEDULE"])
-    logger.info("Processing sheets: %s", ", ".join(selected))
+    logger.info("Processing sheet: %s", sheet)
 
-    frames = []
-    for sheet in selected:
-        df = load_exam_sheet(xl, sheet)
-        df = normalize_columns(df, sheet)
-        df = parse_exam_times(df)
-        frames.append(build_exam_records(df))
-
-    if not frames:
-        return pd.DataFrame()
-
-    return pd.concat(frames, ignore_index=True)
+    df = load_exam_sheet(xl, sheet)
+    df = normalize_columns(df, sheet)
+    df = parse_exam_times(df)
+    return build_exam_records(df)
