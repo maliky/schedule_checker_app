@@ -8,8 +8,13 @@ from class_schedule.utilities import (
     get_datetimes,
     build_date,
     get_week_days,
+    log_offending_rows,
 )
-from class_schedule.settings import course_colleged, course_code_mapping
+from class_schedule.settings import (
+    course_colleged,
+    course_code_mapping,
+    course_prefix_college,
+)
 
 import logging
 
@@ -89,15 +94,15 @@ def clean_and_harmonize_times(df):
     )
 
     rows_with_pm_repeated = time_series.str.contains(r"(?P<A>pm).*(?P=A)")
-    logger.info(f"pm is repeating in rows {rows_with_pm_repeated}")
+    log_offending_rows(df, rows_with_pm_repeated, msg='pm is repeating')
 
     time_series = time_series.str.replace(" ", "")
     rows_with_dots = time_series.str.contains(r"\.")
-    logger.info(f"rows with . in the time {rows_with_dots}")
+    log_offending_rows(df,rows_with_dots, msg='dots are repeating')
     time_series = time_series.str.replace(".", ":")
 
     rows_with_semicols = time_series.str.contains(r"\;")
-    logger.info(f"rows with ; in the time {rows_with_semicols}")
+    log_offending_rows(df, rows_with_semicols, msg="; is")
     time_series = time_series.str.replace(";", ":")
 
     default_time = "01:01-02:02am"
@@ -200,12 +205,21 @@ def add_course_id_year_college(df, course_colleged=course_colleged):
 
     college_cols = ["cidno_sess", "course_title", "year"]
     not_in_curriculum_courses = []
-    for k, s in df[college_cols].T.items():
+    for idx, values in df[college_cols].iterrows():
+        key = tuple(values.values)
         try:
-            df.loc[k, "college"] = course_colleged[tuple(s)]
-        except KeyError as ke:
-            not_in_curriculum_courses.append(ke)
-            pass
+            df.loc[idx, "college"] = course_colleged[key]
+            continue
+        except KeyError:
+            prefix_value = df.loc[idx, "course_code"]
+            if isinstance(prefix_value, pd.Series):
+                prefix_value = prefix_value.iloc[0]
+            prefix = str(prefix_value).upper()
+            fallback_college = course_prefix_college.get(prefix)
+            if fallback_college:
+                df.loc[idx, "college"] = fallback_college
+                continue
+            not_in_curriculum_courses.append((key, prefix))
 
     if not_in_curriculum_courses:
         logger.warning(

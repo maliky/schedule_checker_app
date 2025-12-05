@@ -38,9 +38,9 @@ def main_prg():
 
 
 def main(
-    fname="FINAL SCHEDULE SEMESTEWR II 2024-2025_v2.xlsx",
+    fname="./Data/semI_final_exam_schedule_ay_25-26.xlsx",
     sheet_name="GENERAL SCHEDULE",
-    fout="./Data/class_schedule_v3_cleaned.xlsx",
+    fout="./Data/class_schedule_v4_cleaned.xlsx",
 ):
     """Application principale."""
     tdf = process_schedule(fname, sheet_name)
@@ -79,7 +79,7 @@ def get_args():
         "--logLevel", "-l", type=str, default=logLevel_def, help=logLevel_doc
     )
 
-    fname_def = "./Data/Book1_v4.xlsx"
+    fname_def = "./Data/semI_final_exam_schedule_ay_25-26.xlsx"
     fname_doc = f"name of the file to update.  ({fname_def})"
     parser.add_argument(
         "--fname",
