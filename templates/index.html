@@ -18,7 +18,15 @@
   </ul>
 </p>
 <p>
-  <strong>Next Steps:</strong> After processing, you can view the generated charts and download your refined schedule.
+  <strong>Current visualizations:</strong>
+  <a href="{{ url_for('view_instructor_chart') }}" class="link-primary">Instructor view</a>
+  |
+  <a href="{{ url_for('view_room_chart') }}" class="link-primary">Room view</a>
+  |
+  <a href="/download_processed" class="link-primary">Download processed schedule</a>
+</p>
+<p>
+  <strong>Need to refresh them?</strong> Upload a new file below to regenerate the charts.
 </p>
 
 <form id="uploadForm" enctype="multipart/form-data">
@@ -38,7 +46,7 @@
       />
   </div>
 
-  <button type="submit" class="btn btn-primary">Upload File</button>
+  <button type="submit" class="btn btn-primary">Regenerate Visualizations</button>
 </form>
 <div id="spinner-container">
   <div class="spinner"></div>
@@ -65,4 +73,3 @@
   ></script>
 
 {% endblock %}
-

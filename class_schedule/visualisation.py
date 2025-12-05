@@ -29,9 +29,6 @@ def create_visualizations(data, dout="templates"):
     """
     day_gps = data.groupby(["weekday"]).groups
 
-    instructor_order_college = (
-        data.sort_values(by=["college", "instructor"])
-    ).instructor
     colleges = list(data.college.unique())
     weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
@@ -42,11 +39,9 @@ def create_visualizations(data, dout="templates"):
 
         day_df = data.loc[day_gps[day]]
 
-        time_scale = alt.Scale(domain=[day_df.sts.min(), day_df.ets.max()])
+        time_scale = alt.Scale(domain=[day_df.sts.min(), day_df.ets.max()], nice=False)
 
-        day_room_chart = make_day_room_chart(
-            day_df, time_scale, title=day, sort=instructor_order_college
-        )
+        day_room_chart = make_day_room_chart(day_df, time_scale, title=day)
         day_room_charts.append(day_room_chart)
 
         clg_day_charts = []
@@ -63,23 +58,25 @@ def create_visualizations(data, dout="templates"):
                 )
                 clg_day_charts.append(clg_day_chart)
 
-        clg_instructor_chart = alt.vconcat(*clg_day_charts).properties(title=day)
+        clg_instructor_chart = (
+            alt.vconcat(*clg_day_charts).properties(title=day).resolve_scale(x="independent")
+        )
         clg_instructor_charts.append(clg_instructor_chart)
         # college_chart.save(f"{day}-colleges_chart.html")
 
-        instructor_final_chart = alt.hconcat(*clg_instructor_charts)
+        instructor_final_chart = alt.hconcat(*clg_instructor_charts).resolve_scale(
+            x="independent"
+        )
 
     instructor_final_chart.save(f"{dout}/instructor_final_chart.html")
 
-    room_final_chart = alt.hconcat(*day_room_charts)
+    room_final_chart = alt.hconcat(*day_room_charts).resolve_scale(x="independent")
     room_final_chart.save(f"{dout}/room_final_chart.html")
 
     pass
 
 
-def make_day_room_chart(
-    day_data_df: pd.DataFrame, time_scale: alt.Scale, title: str, sort
-):
+def make_day_room_chart(day_data_df: pd.DataFrame, time_scale: alt.Scale, title: str):
     # A chart layer for the room occupation
     chart_rooms = (
         alt.Chart(day_data_df)
@@ -87,8 +84,8 @@ def make_day_room_chart(
         .encode(
             x=alt.X("sts:T", scale=time_scale),
             x2="ets:T",
-            y=alt.Y("instructor:N", title=None, sort=sort),
-            size="credit:N",
+            y=alt.Y("instructor:N", title=None, sort=instructor_order),
+            size=alt.Size("credit:Q", title="Credit", scale=alt.Scale(range=[2, 15])),
             color="college:N",
             tooltip=[
                 "cid",
@@ -143,7 +140,7 @@ def make_clg_day_instructor_chart(
                 title=None,
                 sort=room_order,
             ),
-            size="credit:N",
+            size=alt.Size("credit:Q", title="Credit", scale=alt.Scale(range=[2, 15])),
             color="college:N",
             tooltip=[
                 "cid",

@@ -5,6 +5,7 @@
 """
 
 import logging
+import re
 import pandas as pd
 from class_schedule.class_schedule import (
     general_cleaning,
@@ -62,11 +63,15 @@ COLUMN_ALIASES = {
 
 
 def _normalize_string_columns(df: pd.DataFrame) -> pd.DataFrame:
-    str_cols = df.select_dtypes(include="object").columns
+    def _clean_value(value):
+        if isinstance(value, str):
+            return re.sub(r"\s+", " ", value.strip())
+        return value
+
+    str_cols = df.columns[df.dtypes == "object"]
     if len(str_cols):
-        df.loc[:, str_cols] = df.loc[:, str_cols].apply(
-            lambda s: s.str.strip().str.replace(r"\s+", " ", regex=True)
-        )
+        for col in str_cols:
+            df.loc[:, col] = df.loc[:, col].map(_clean_value)
     return df
 
 
@@ -105,6 +110,13 @@ def load_general_schedule(fname, sheet_name):
 
     rename_map = {col: _canonical_column_name(col) for col in data.columns}
     data = data.rename(columns=rename_map)
+
+    if "course_no" in data.columns:
+        data.loc[:, "course_no"] = (
+            data.loc[:, "course_no"]
+            .apply(lambda x: str(x).strip() if pd.notna(x) else pd.NA)
+            .str.replace(r"\.0$", "", regex=True)
+        )
 
     missing = [col for col in EXPECTED_SCHEDULE_COLUMNS if col not in data.columns]
     if missing:
