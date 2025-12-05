@@ -8,9 +8,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# def setup_logger(level=LEVEL, logfmt=LOGFMT):
-#     logging.basicConfig(level=logging.INFO, format=logfmt)
-#     return None
+
+def log_offending_rows(df: pd.DataFrame, mask: pd.Series, msg: str) -> None:
+    """Log indices of rows matching a boolean mask."""
+    if mask.any():
+        off_rows = df.loc[mask.fillna(False)]
+        logger.info("%s in rows %s", msg, off_rows.index.tolist())
 
 
 def conv__hours(tdelta):
