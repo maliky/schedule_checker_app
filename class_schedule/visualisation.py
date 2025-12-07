@@ -9,31 +9,53 @@ instructor_order = alt.EncodingSortField(field="instructor", order="ascending")
 
 
 def _detect_location_conflicts(day_df: pd.DataFrame) -> pd.DataFrame:
-    """Return a DataFrame summarising conflicts per location for the day.
+    """Return conflicts per location (overlaps and exact duplicates).
 
-    Columns: location, conflict_start, conflict_end, conflicts (list of dicts)
+    Columns: location, conflict_start, conflict_end, conflict_details (string)
     """
 
     rows = []
     for location, group in day_df.groupby("location"):
         group_sorted = group.sort_values("sts")
+        records = group_sorted.to_dict(orient="records")
+
+        duplicate_dicts = []
+        for _, g in group_sorted.groupby(["sts", "ets", "instructor"]):
+            if len(g) > 1:
+                duplicate_dicts.extend(g.to_dict(orient="records"))
+
         overlaps = []
-        prev = None
-        for _, row in group_sorted.iterrows():
-            if prev is not None and row.sts < prev.ets:
-                overlaps.append(prev)
-                overlaps.append(row)
-            prev = row
-        if overlaps:
-            uniq = pd.DataFrame(overlaps).drop_duplicates()
-            rows.append(
-                {
-                    "location": location,
-                    "conflict_start": uniq.sts.min(),
-                    "conflict_end": uniq.ets.max(),
-                    "conflicts": uniq.to_dict(orient="records"),
-                }
+        prev_end = None
+        prev_rec = None
+        for rec in records:
+            sts = rec["sts"]
+            if prev_end is not None and sts < prev_end:
+                overlaps.append(prev_rec)
+                overlaps.append(rec)
+            prev_end = rec["ets"] if prev_end is None else max(prev_end, rec["ets"])
+            prev_rec = rec
+
+        all_conflicts = overlaps + duplicate_dicts
+        if not all_conflicts:
+            continue
+
+        uniq = pd.DataFrame(all_conflicts).drop_duplicates()
+        details = []
+        for r in uniq.to_dict(orient="records"):
+            s = pd.to_datetime(r.get("sts")).strftime("%H:%M")
+            e = pd.to_datetime(r.get("ets")).strftime("%H:%M")
+            details.append(
+                f"{r.get('course_title','')} | {r.get('instructor','')} | {s}-{e} | {r.get('cid','')}"
             )
+
+        rows.append(
+            {
+                "location": location,
+                "conflict_start": uniq.sts.min(),
+                "conflict_end": uniq.ets.max(),
+                "conflict_details": "; ".join(details),
+            }
+        )
 
     return pd.DataFrame(rows)
 
@@ -158,7 +180,7 @@ def make_day_room_chart(
         conflict_df = conflict_df.copy()
         conflict_df.loc[:, "conflict_start"] = conflict_df["conflict_start"].astype(str)
         conflict_df.loc[:, "conflict_end"] = conflict_df["conflict_end"].astype(str)
-        conflict_df.loc[:, "conflicts"] = conflict_df["conflicts"].apply(str)
+        conflict_df.loc[:, "conflict_details"] = conflict_df["conflict_details"].apply(str)
         conflict_layer = (
             alt.Chart(conflict_df)
             .mark_rect(color="rgba(255,0,0,0.15)")
@@ -169,7 +191,7 @@ def make_day_room_chart(
                     alt.Tooltip("location:N", title="Location"),
                     alt.Tooltip("conflict_start:T", title="First overlap"),
                     alt.Tooltip("conflict_end:T", title="Last overlap"),
-                    alt.Tooltip("conflicts:N", title="Conflicting sessions"),
+                    alt.Tooltip("conflict_details:N", title="Conflicting sessions"),
                 ],
             )
         )
