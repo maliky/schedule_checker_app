@@ -1,0 +1,121 @@
+#+PROPERTY: header-args :session explore :eval no-export :exports both :results output drawer replace :cache no :tangle yes
+#+OPTIONS: H:3 toc:t num:t broken-links:t ^:{} date:t author:nil title:t *:nil
+
+* Environment bootstrap
+
+#+BEGIN_SRC python :results value
+  from pathlib import Path
+  import os 
+  BASE_DIR = Path(__file__).resolve().parent
+  os.sys.executable, os.getcwd(), BASE_DIR
+  #+END_SRC
+
+#+RESULTS:
+:results:
+('/home/mlk/.pyenv/versions/gen/bin/python', '/mnt/backup/Prog/Git/schedule_checker_app', PosixPath('/home/mlk/.pyenv/versions/3.13.9/lib/python3.13/_pyrepl'))
+:end:
+
+* Load helpers
+
+#+BEGIN_SRC python :results silent
+import pandas as pd
+from pathlib import Path
+from class_schedule.helper import process_schedule
+#+END_SRC
+
+* Quick peek at processed schedule
+#+BEGIN_SRC python
+def _detect_location_conflicts(day_df: pd.DataFrame) -> list[str]:
+    """Return locations that contain overlapping sessions for the day."""
+
+    conflicts = []
+    for location, group in day_df.groupby("location"):
+        group_sorted = group.sort_values("sts")
+        has_conflict = False
+        prev_end = None
+        for _, row in group_sorted.iterrows():
+            if prev_end is not None and row.sts < prev_end:
+                has_conflict = True
+                break
+            prev_end = max(prev_end, row.ets) if prev_end else row.ets
+        if has_conflict:
+            conflicts.append(location)
+
+    return conflicts
+  
+#+END_SRC
+
+#+RESULTS:
+:results:
+:end:
+
+#+BEGIN_SRC python :results table
+fs = Path("Data") / Path("FINAL SCHEDULE SEMESTEWR II 2024-2025_v2.xlsx")
+
+data = process_schedule(fs, "GENERAL SCHEDULE")
+data.head()
+#+END_SRC
+
+#+RESULTS:
+:results:
+2025-12-07 20:03:04,394 MainThread~20 /class_schedule.py@41@general_cleaning/ Starting general cleaning of the data.
+2025-12-07 20:03:04,407 MainThread~20 /class_schedule.py@63@general_cleaning/ Completed general cleaning.
+2025-12-07 20:03:04,407 MainThread~20 /helper.py@143@process_schedule/ Completed general cleaning
+2025-12-07 20:03:04,407 MainThread~20 /class_schedule.py@78@clean_and_harmonize_times/ cleaning and harmonizing times.
+/mnt/backup/Prog/Git/schedule_checker_app/class_schedule/class_schedule.py:96: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
+  rows_with_pm_repeated = time_series.str.contains(r"(?P<A>pm).*(?P=A)")
+2025-12-07 20:03:04,418 MainThread~20 /class_schedule.py@121@clean_and_harmonize_times/ Completed time cleaning and harmonization.
+2025-12-07 20:03:04,419 MainThread~20 /helper.py@146@process_schedule/ Completed cleaning and harmonizing times
+2025-12-07 20:03:04,419 MainThread~20 /helper.py@148@process_schedule/ Starting with applied epidemiology a special course to split in 2
+2025-12-07 20:03:04,421 MainThread~20 /helper.py@150@process_schedule/ Completed special applied epidemiology course
+2025-12-07 20:03:04,421 MainThread~20 /class_schedule.py@135@getting_start_end_times/ Extracting start and end times from the time column.
+2025-12-07 20:03:04,571 MainThread~20 /class_schedule.py@145@getting_start_end_times/ Completed extraction of start and end times.
+2025-12-07 20:03:04,571 MainThread~20 /helper.py@153@process_schedule/ Completed getting start and end times
+2025-12-07 20:03:04,571 MainThread~20 /class_schedule.py@156@add_duration/ Calculating course durations.
+2025-12-07 20:03:04,672 MainThread~20 /class_schedule.py@166@add_duration/ Completed calculation of course durations.
+2025-12-07 20:03:04,672 MainThread~20 /helper.py@156@process_schedule/ Completed adding duration
+2025-12-07 20:03:04,673 MainThread~20 /class_schedule.py@356@harmonize_course_codes/ Adding weekday names.
+2025-12-07 20:03:04,673 MainThread~20 /helper.py@159@process_schedule/ Completed harmonizing course codes
+2025-12-07 20:03:04,673 MainThread~20 /class_schedule.py@177@add_course_id_year_college/ Crée et ajoute un identifiant et l'année pour chaque cours.
+/mnt/backup/Prog/Git/schedule_checker_app/class_schedule/class_schedule.py:182: FutureWarning: Series.__getitem__ treating keys as positions is deprecated. In a future version, integer keys will always be treated as labels (consistent with DataFrame behavior). To access a value by position, use `ser.iloc[pos]`
+  lambda x: f"{x[0]}_{x[1]}_s{x[2]:.0f}", axis=1
+2025-12-07 20:03:04,860 MainThread~20 /class_schedule.py@231@add_course_id_year_college/ Completed generation of course IDs and assignment of colleges.
+2025-12-07 20:03:04,860 MainThread~20 /helper.py@162@process_schedule/ Completed adding course ID, year, and college
+2025-12-07 20:03:04,860 MainThread~20 /class_schedule.py@245@expand_days/ Expanding days into separate rows.
+2025-12-07 20:03:06,295 MainThread~20 /class_schedule.py@248@expand_days/ Completed expansion of days.
+2025-12-07 20:03:06,295 MainThread~20 /class_schedule.py@290@add_weekname/ Adding weekday names.
+2025-12-07 20:03:06,320 MainThread~20 /class_schedule.py@295@add_weekname/ Completed expansion of days.
+:end:
+
+
+#+BEGIN_SRC python :results value
+  day_gps = data.groupby(["weekday"]).groups
+  day = 'Monday'
+  day_df = data.loc[day_gps[day]]
+  cl = _detect_location_conflicts(day_df)
+  d = day_df.loc[day_df.location == 'AA 117']
+  d.loc[:,['instructor','sts','ets','course_title']].sort_values('instructor').drop_duplicates('course_title')
+#+END_SRC
+
+#+RESULTS:
+:results:
+                       instructor  ...                                       course_title
+245  Dr. Uchechukwu S. Onwudiegwu  ...  Principles and Foundations of Early Childhood ...
+253  Dr. Uchechukwu S. Onwudiegwu  ...                    Infants and Toddlers Group Care
+316  Dr. Uchechukwu S. Onwudiegwu  ...    Principles and Foundations of Primary Education
+243             Wlateh, George T.  ...  Mathematics for Teachers in Early Years’Classr...
+314             Wlateh, George T.  ...     Mathematics for Teachers in Primary Classrooms
+
+[5 rows x 4 columns]
+:end:
+
+* College distribution snapshot
+
+#+BEGIN_SRC python :results value
+schedule_df["college"].value_counts()
+#+END_SRC
+
+* Notes
+
+- Use the existing Python session (`parse`) to run ad-hoc analysis blocks.
+- Update =schedule_path= if you want to explore other workbooks (e.g., exam schedules).

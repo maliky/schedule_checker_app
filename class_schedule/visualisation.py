@@ -8,23 +8,34 @@ room_order = alt.EncodingSortField(field="location", order="ascending")
 instructor_order = alt.EncodingSortField(field="instructor", order="ascending")
 
 
-def _detect_location_conflicts(day_df: pd.DataFrame) -> list[str]:
-    """Return locations that contain overlapping sessions for the day."""
+def _detect_location_conflicts(day_df: pd.DataFrame) -> pd.DataFrame:
+    """Return a DataFrame summarising conflicts per location for the day.
 
-    conflicts = []
+    Columns: location, conflict_start, conflict_end, conflicts (list of dicts)
+    """
+
+    rows = []
     for location, group in day_df.groupby("location"):
         group_sorted = group.sort_values("sts")
-        has_conflict = False
-        prev_end = None
+        overlaps = []
+        prev = None
         for _, row in group_sorted.iterrows():
-            if prev_end is not None and row.sts < prev_end:
-                has_conflict = True
-                break
-            prev_end = max(prev_end, row.ets) if prev_end else row.ets
-        if has_conflict:
-            conflicts.append(location)
+            if prev is not None and row.sts < prev.ets:
+                overlaps.append(prev)
+                overlaps.append(row)
+            prev = row
+        if overlaps:
+            uniq = pd.DataFrame(overlaps).drop_duplicates()
+            rows.append(
+                {
+                    "location": location,
+                    "conflict_start": uniq.sts.min(),
+                    "conflict_end": uniq.ets.max(),
+                    "conflicts": uniq.to_dict(orient="records"),
+                }
+            )
 
-    return conflicts
+    return pd.DataFrame(rows)
 
 
 def create_visualizations(data, dout="templates"):
@@ -68,10 +79,10 @@ def create_visualizations(data, dout="templates"):
         day_df = data.loc[day_gps[day]]
 
         time_scale = alt.Scale(domain=[day_df.sts.min(), day_df.ets.max()], nice=False)
-        conflict_locations = _detect_location_conflicts(day_df)
+        conflict_df = _detect_location_conflicts(day_df)
 
         day_room_chart = make_day_room_chart(
-            day_df, time_scale, title=day, conflict_locations=conflict_locations
+            day_df, time_scale, title=day, conflict_df=conflict_df
         )
         day_room_charts.append(day_room_chart)
 
@@ -119,7 +130,7 @@ def make_day_room_chart(
     day_data_df: pd.DataFrame,
     time_scale: alt.Scale,
     title: str,
-    conflict_locations: list[str] | None = None,
+    conflict_df: pd.DataFrame | None = None,
 ):
     # A chart layer for the room occupation
     chart_rooms = (
@@ -143,21 +154,22 @@ def make_day_room_chart(
     )
     layers = []
 
-    if conflict_locations:
+    if conflict_df is not None and not conflict_df.empty:
+        conflict_df = conflict_df.copy()
+        conflict_df.loc[:, "conflict_start"] = conflict_df["conflict_start"].astype(str)
+        conflict_df.loc[:, "conflict_end"] = conflict_df["conflict_end"].astype(str)
+        conflict_df.loc[:, "conflicts"] = conflict_df["conflicts"].apply(str)
         conflict_layer = (
-            alt.Chart(day_data_df)
-            .transform_filter(alt.FieldOneOfPredicate(field="location", oneOf=conflict_locations))
-            .transform_aggregate(
-                conflict_start="min(sts)", conflict_end="max(ets)", groupby=["location"]
-            )
+            alt.Chart(conflict_df)
             .mark_rect(color="rgba(255,0,0,0.15)")
             .encode(
-                x="conflict_start:T",
-                x2="conflict_end:T",
+                x=alt.X("conflict_start:T", scale=time_scale),
+                x2=alt.X2("conflict_end:T"),
                 tooltip=[
                     alt.Tooltip("location:N", title="Location"),
                     alt.Tooltip("conflict_start:T", title="First overlap"),
                     alt.Tooltip("conflict_end:T", title="Last overlap"),
+                    alt.Tooltip("conflicts:N", title="Conflicting sessions"),
                 ],
             )
         )
@@ -166,7 +178,7 @@ def make_day_room_chart(
     layers.append(chart_rooms)
 
     layered_chart = (
-        alt.layer(*layers)
+        alt.layer(*layers, data=day_data_df)
         .facet(
             row=alt.Facet(
                 "location:N",
