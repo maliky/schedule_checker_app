@@ -50,41 +50,43 @@ def _detect_location_conflicts(day_df: pd.DataFrame) -> list[str]:
 :end:
 
 #+BEGIN_SRC python :results table
-fs = Path("Data") / Path("FINAL SCHEDULE SEMESTEWR II 2024-2025_v2.xlsx")
-
+fs = Path("Data") / Path("25-26Sem2-schedule.xlsx")
 data = process_schedule(fs, "GENERAL SCHEDULE")
 data.head()
 #+END_SRC
 
 #+RESULTS:
 :results:
-2025-12-07 20:03:04,394 MainThread~20 /class_schedule.py@41@general_cleaning/ Starting general cleaning of the data.
-2025-12-07 20:03:04,407 MainThread~20 /class_schedule.py@63@general_cleaning/ Completed general cleaning.
-2025-12-07 20:03:04,407 MainThread~20 /helper.py@143@process_schedule/ Completed general cleaning
-2025-12-07 20:03:04,407 MainThread~20 /class_schedule.py@78@clean_and_harmonize_times/ cleaning and harmonizing times.
+2025-12-10 05:51:54,489 MainThread~30 /helper.py@123@load_general_schedule/ Missing columns ['college', 'section'] in sheet GENERAL SCHEDULE; filling with NA
+2025-12-10 05:51:54,519 MainThread~20 /class_schedule.py@41@general_cleaning/ Starting general cleaning of the data.
+2025-12-10 05:51:54,545 MainThread~20 /class_schedule.py@63@general_cleaning/ Completed general cleaning.
+2025-12-10 05:51:54,545 MainThread~20 /helper.py@143@process_schedule/ Completed general cleaning
+2025-12-10 05:51:54,545 MainThread~20 /class_schedule.py@78@clean_and_harmonize_times/ cleaning and harmonizing times.
 /mnt/backup/Prog/Git/schedule_checker_app/class_schedule/class_schedule.py:96: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
   rows_with_pm_repeated = time_series.str.contains(r"(?P<A>pm).*(?P=A)")
-2025-12-07 20:03:04,418 MainThread~20 /class_schedule.py@121@clean_and_harmonize_times/ Completed time cleaning and harmonization.
-2025-12-07 20:03:04,419 MainThread~20 /helper.py@146@process_schedule/ Completed cleaning and harmonizing times
-2025-12-07 20:03:04,419 MainThread~20 /helper.py@148@process_schedule/ Starting with applied epidemiology a special course to split in 2
-2025-12-07 20:03:04,421 MainThread~20 /helper.py@150@process_schedule/ Completed special applied epidemiology course
-2025-12-07 20:03:04,421 MainThread~20 /class_schedule.py@135@getting_start_end_times/ Extracting start and end times from the time column.
-2025-12-07 20:03:04,571 MainThread~20 /class_schedule.py@145@getting_start_end_times/ Completed extraction of start and end times.
-2025-12-07 20:03:04,571 MainThread~20 /helper.py@153@process_schedule/ Completed getting start and end times
-2025-12-07 20:03:04,571 MainThread~20 /class_schedule.py@156@add_duration/ Calculating course durations.
-2025-12-07 20:03:04,672 MainThread~20 /class_schedule.py@166@add_duration/ Completed calculation of course durations.
-2025-12-07 20:03:04,672 MainThread~20 /helper.py@156@process_schedule/ Completed adding duration
-2025-12-07 20:03:04,673 MainThread~20 /class_schedule.py@356@harmonize_course_codes/ Adding weekday names.
-2025-12-07 20:03:04,673 MainThread~20 /helper.py@159@process_schedule/ Completed harmonizing course codes
-2025-12-07 20:03:04,673 MainThread~20 /class_schedule.py@177@add_course_id_year_college/ Crée et ajoute un identifiant et l'année pour chaque cours.
+2025-12-10 05:51:54,569 MainThread~20 /class_schedule.py@121@clean_and_harmonize_times/ Completed time cleaning and harmonization.
+2025-12-10 05:51:54,569 MainThread~20 /helper.py@146@process_schedule/ Completed cleaning and harmonizing times
+2025-12-10 05:51:54,569 MainThread~20 /helper.py@148@process_schedule/ Starting with applied epidemiology a special course to split in 2
+2025-12-10 05:51:54,576 MainThread~20 /helper.py@150@process_schedule/ Completed special applied epidemiology course
+2025-12-10 05:51:54,576 MainThread~20 /class_schedule.py@135@getting_start_end_times/ Extracting start and end times from the time column.
+2025-12-10 05:51:54,802 MainThread~20 /class_schedule.py@145@getting_start_end_times/ Completed extraction of start and end times.
+2025-12-10 05:51:54,802 MainThread~20 /helper.py@153@process_schedule/ Completed getting start and end times
+2025-12-10 05:51:54,803 MainThread~20 /class_schedule.py@156@add_duration/ Calculating course durations.
+2025-12-10 05:51:54,948 MainThread~20 /class_schedule.py@166@add_duration/ Completed calculation of course durations.
+2025-12-10 05:51:54,948 MainThread~20 /helper.py@156@process_schedule/ Completed adding duration
+2025-12-10 05:51:54,949 MainThread~20 /class_schedule.py@356@harmonize_course_codes/ Adding weekday names.
+2025-12-10 05:51:54,949 MainThread~20 /helper.py@159@process_schedule/ Completed harmonizing course codes
+2025-12-10 05:51:54,950 MainThread~20 /class_schedule.py@177@add_course_id_year_college/ Crée et ajoute un identifiant et l'année pour chaque cours.
 /mnt/backup/Prog/Git/schedule_checker_app/class_schedule/class_schedule.py:182: FutureWarning: Series.__getitem__ treating keys as positions is deprecated. In a future version, integer keys will always be treated as labels (consistent with DataFrame behavior). To access a value by position, use `ser.iloc[pos]`
   lambda x: f"{x[0]}_{x[1]}_s{x[2]:.0f}", axis=1
-2025-12-07 20:03:04,860 MainThread~20 /class_schedule.py@231@add_course_id_year_college/ Completed generation of course IDs and assignment of colleges.
-2025-12-07 20:03:04,860 MainThread~20 /helper.py@162@process_schedule/ Completed adding course ID, year, and college
-2025-12-07 20:03:04,860 MainThread~20 /class_schedule.py@245@expand_days/ Expanding days into separate rows.
-2025-12-07 20:03:06,295 MainThread~20 /class_schedule.py@248@expand_days/ Completed expansion of days.
-2025-12-07 20:03:06,295 MainThread~20 /class_schedule.py@290@add_weekname/ Adding weekday names.
-2025-12-07 20:03:06,320 MainThread~20 /class_schedule.py@295@add_weekname/ Completed expansion of days.
+2025-12-10 05:51:55,147 MainThread~30 /class_schedule.py@225@add_course_id_year_college/ Unmapped course encountered: [(('PHY_202', 'Physics For Engineers II', 'Sophomore'), 'PHY')]
+>> It is not a course that was seen before.  We need to update the course_colleged variable in file settings.py <<
+2025-12-10 05:51:55,148 MainThread~20 /class_schedule.py@231@add_course_id_year_college/ Completed generation of course IDs and assignment of colleges.
+2025-12-10 05:51:55,148 MainThread~20 /helper.py@162@process_schedule/ Completed adding course ID, year, and college
+2025-12-10 05:51:55,148 MainThread~20 /class_schedule.py@245@expand_days/ Expanding days into separate rows.
+2025-12-10 05:51:56,785 MainThread~20 /class_schedule.py@248@expand_days/ Completed expansion of days.
+2025-12-10 05:51:56,785 MainThread~20 /class_schedule.py@290@add_weekname/ Adding weekday names.
+2025-12-10 05:51:56,814 MainThread~20 /class_schedule.py@295@add_weekname/ Completed expansion of days.
 :end:
 
 
