@@ -1,15 +1,21 @@
-from flask import Flask, request, render_template, redirect, url_for, send_file
+import logging
 import os
-import pandas as pd
-import altair as alt
 import sys
 from pathlib import Path
 
-from class_schedule.visualisation import create_visualizations
-from class_schedule.helper import process_schedule
-from class_schedule.exam_schedule import process_exam_workbook
-import logging
+import altair as alt
+import pandas as pd
 from dotenv import load_dotenv
+from flask import Flask, redirect, render_template, request, url_for
+
+from class_schedule.exam_schedule import process_exam_workbook
+from class_schedule.helper import process_schedule
+from class_schedule.visualisation import create_visualizations
+
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 
 load_dotenv()  # Load variables from .env
 
@@ -21,12 +27,6 @@ app.config["ENV"] = os.getenv("FLASK_ENV", "production")  # Default to productio
 app.config["DEBUG"] = app.config["ENV"] == "development"
 
 logging.basicConfig(filename="app.log", level=logging.INFO)
-
-# Add the current working directory to the Python path as a fallback
-if str(Path(__file__).resolve().parent) not in sys.path:
-    sys.path.append(str(Path(__file__).resolve().parent))
-    sys.path.append(str(Path(__file__).resolve().parent / "class_schedule"))
-
 
 ################
 # ROUTE VIEWS  #
