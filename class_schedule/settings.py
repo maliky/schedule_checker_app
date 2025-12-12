@@ -1,4 +1,5 @@
 course_colleged = {
+    ('EEDU_302', 'Entrepreneurship II', 'Junior'): 'COBA',
     ('ACCT_102', 'Introduction Accounting', 'Freshmen'): 'COBA',
     ('ACCT_102', 'Introduction to Accounting', 'Freshmen'): 'COBA',
     ('ACCT_201', 'Principles of Accounting I', 'Sophomore'): 'COBA',

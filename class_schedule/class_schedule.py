@@ -120,6 +120,9 @@ def clean_and_harmonize_times(df):
     df.loc[no_meridium, "time"] = df.loc[no_meridium, "time"].apply(lambda x: x + "pm")
     logger.info("Completed time cleaning and harmonization.")
 
+    # standardize staff name
+    f = df.loc[:,'instructor'].str.lower() == 'staff'
+    df.loc[f,'instructor'] = 'Staff'
     return df
 
 

@@ -16,7 +16,7 @@ from class_schedule.class_schedule import (
     expand_days,
     add_weekname,
     special_applied_epidemiology_course,
-    harmonize_course_codes    
+    harmonize_course_codes,
 )
 
 LOGFMT = "%(asctime)s %(threadName)s~%(levelno)s /%(filename)s@%(lineno)s@%(funcName)s/ %(message)s"
@@ -53,6 +53,7 @@ COLUMN_ALIASES = {
     "course_title": "course_title",
     "credit": "credit",
     "section": "section",
+    "sec": "section",
     "instructor": "instructor",
     "location": "location",
     "location_room": "location",
@@ -63,6 +64,8 @@ COLUMN_ALIASES = {
 
 
 def _normalize_string_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Clean the value of the df."""
+
     def _clean_value(value):
         if isinstance(value, str):
             return re.sub(r"\s+", " ", value.strip())
@@ -79,11 +82,7 @@ def _canonical_column_name(value) -> str:
     if not isinstance(value, str):
         return value
     normalized = (
-        value.strip()
-        .lower()
-        .replace("&", "and")
-        .replace("/", "_")
-        .replace(".", "")
+        value.strip().lower().replace("&", "and").replace("/", "_").replace(".", "")
     )
     normalized = normalized.replace(" ", "_")
     normalized = normalized.replace("-", "_")
@@ -93,31 +92,21 @@ def _canonical_column_name(value) -> str:
 
 def load_general_schedule(fname, sheet_name):
     raw = pd.read_excel(fname, sheet_name=sheet_name, header=None)
-    raw = _normalize_string_columns(raw)
-
+    raw = raw.dropna(axis=0, thresh=2)
+    raw = raw.dropna(axis=1, thresh=2)
     first_col = raw.iloc[:, 0].astype(str).str.strip().str.lower()
     mask = first_col.str.match(r"n[o0]\.?")
     if not mask.any():
         raise ValueError(
             f"Unable to locate header row labeled 'No.' in sheet {sheet_name!r}"
         )
-
     header_idx = mask[mask].index[0]
     header = raw.iloc[header_idx]
-    data = raw.iloc[header_idx + 1 :].dropna(how="all").reset_index(drop=True)
+    data = raw.iloc[header_idx + 1 :,]
     data.columns = header
     data = _normalize_string_columns(data)
-
     rename_map = {col: _canonical_column_name(col) for col in data.columns}
     data = data.rename(columns=rename_map)
-
-    if "course_no" in data.columns:
-        data.loc[:, "course_no"] = (
-            data.loc[:, "course_no"]
-            .apply(lambda x: str(x).strip() if pd.notna(x) else pd.NA)
-            .str.replace(r"\.0$", "", regex=True)
-        )
-
     missing = [col for col in EXPECTED_SCHEDULE_COLUMNS if col not in data.columns]
     if missing:
         logger.warning(
@@ -127,7 +116,6 @@ def load_general_schedule(fname, sheet_name):
         )
         for col in missing:
             data.loc[:, col] = pd.NA
-
     data = data.loc[:, EXPECTED_SCHEDULE_COLUMNS]
     data = data.dropna(subset=["course_code"]).copy()
     data = data.set_index("no")
@@ -144,20 +132,20 @@ def process_schedule(fname, sheet_name):
 
     df = clean_and_harmonize_times(df)
     logger.info("Completed cleaning and harmonizing times")
-    
+
     logger.info("Starting with applied epidemiology a special course to split in 2")
     df = special_applied_epidemiology_course(df)
     logger.info("Completed special applied epidemiology course")
-    
+
     df = getting_start_end_times(df)
     logger.info("Completed getting start and end times")
-    
+
     df = add_duration(df)
     logger.info("Completed adding duration")
-    
+
     df = harmonize_course_codes(df)
     logger.info("Completed harmonizing course codes")
-    
+
     df = add_course_id_year_college(df)
     logger.info("Completed adding course ID, year, and college")
 

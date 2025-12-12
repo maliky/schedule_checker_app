@@ -5,8 +5,32 @@
 
 #+BEGIN_SRC python :results value
   from pathlib import Path
-  import os 
+  import logging
+  import os
+  import pandas as pd
+  from pathlib import Path
+  import class_schedule.helper as hp
+  from class_schedule.helper import process_schedule, load_general_schedule
+  from class_schedule.class_schedule import (
+      general_cleaning,
+      clean_and_harmonize_times,
+      getting_start_end_times,
+      add_duration,
+      add_course_id_year_college,
+      expand_days,
+      add_weekname,
+      special_applied_epidemiology_course,
+      harmonize_course_codes    
+  )
+  
   BASE_DIR = Path(__file__).resolve().parent
+  LOGFMT = "%(asctime)s %(threadName)s~%(levelno)s /%(filename)s@%(lineno)s@%(funcName)s/ %(message)s"
+  LEVEL = "INFO"
+  logger = logging.getLogger(__name__)
+  logging.basicConfig(level=logging.INFO, format=LOGFMT)
+  
+  fs = Path("Data") / Path("25-26sem2.xlsx")
+    
   os.sys.executable, os.getcwd(), BASE_DIR
   #+END_SRC
 
@@ -15,94 +39,196 @@
 ('/home/mlk/.pyenv/versions/gen/bin/python', '/mnt/backup/Prog/Git/schedule_checker_app', PosixPath('/home/mlk/.pyenv/versions/3.13.9/lib/python3.13/_pyrepl'))
 :end:
 
-* Load helpers
-
+* Pas a pas ?
 #+BEGIN_SRC python :results silent
-import pandas as pd
-from pathlib import Path
-from class_schedule.helper import process_schedule
-#+END_SRC
-
-* Quick peek at processed schedule
-#+BEGIN_SRC python
-def _detect_location_conflicts(day_df: pd.DataFrame) -> list[str]:
-    """Return locations that contain overlapping sessions for the day."""
-
-    conflicts = []
-    for location, group in day_df.groupby("location"):
-        group_sorted = group.sort_values("sts")
-        has_conflict = False
-        prev_end = None
-        for _, row in group_sorted.iterrows():
-            if prev_end is not None and row.sts < prev_end:
-                has_conflict = True
-                break
-            prev_end = max(prev_end, row.ets) if prev_end else row.ets
-        if has_conflict:
-            conflicts.append(location)
-
-    return conflicts
+  sheet_name="GENERAL SCHEDULE"
+  fname = fs
+  df = load_general_schedule(fname, sheet_name)
+  df = general_cleaning(df)
+  df = clean_and_harmonize_times(df)
+  df = special_applied_epidemiology_course(df)
+  df = getting_start_end_times(df)
+  df = add_duration(df)
   
-#+END_SRC
+#+END_SRC  
+** peeking in load_General
+#+BEGIN_SRC python :results silent
+  raw = pd.read_excel(fname, sheet_name=sheet_name, header=None)
+  raw = raw.dropna(axis=0,thresh=2)
+  raw = raw.dropna(axis=1,thresh=2)  
+  #  raw = hp._normalize_string_columns(raw)
+  first_col = raw.iloc[:, 0].astype(str).str.strip().str.lower()
+  mask = first_col.str.match(r"n[o0]\.?")
+  if not mask.any():
+      raise ValueError(f"Unable to locate header row labeled 'No.' in sheet {sheet_name!r}")
+  header_idx = mask[mask].index[0]
+  header = raw.iloc[header_idx]
+  data = raw.iloc[header_idx + 1 :,]
+  data.columns = header
+  data = hp._normalize_string_columns(data)
+  rename_map = {col: hp._canonical_column_name(col) for col in data.columns}
+  data = data.rename(columns=rename_map)
+  missing = [col for col in hp.EXPECTED_SCHEDULE_COLUMNS if col not in data.columns]
+  if missing:
+      logger.warning(
+          "Missing columns %s in sheet %s; filling with NA",
+          missing,
+          sheet_name,
+      )
+      for col in missing:
+          data.loc[:, col] = pd.NA
+  data = data.loc[:, hp.EXPECTED_SCHEDULE_COLUMNS]
+  data = data.dropna(subset=["course_code"]).copy()
+  data = data.set_index("no")
+  data.index.name = "no"
+#+END_SRC   
 
 #+RESULTS:
 :results:
 :end:
 
+** harmonize course code
+#+BEGIN_SRC python
+  df = harmonize_course_codes(df)
+  tdf = expand_days(df)
+  tdf = add_weekname(tdf)
+  data = tdf.loc[
+        :,
+        [
+            "sts",
+            "instructor",
+            "location",
+            "weekday",
+            "cid",
+            "credit",
+            "course_title",
+            "college",
+            "oldidx",
+            "ets",
+        ],
+    ]
+    times = data.loc[:, ["sts", "ets"]]
+    data.loc[:, "start_time"] = data.sts.apply(lambda t: t.strftime("%H:%M"))
+    data.loc[:, "end_time"] = data.ets.apply(lambda t: t.strftime("%H:%M"))
+  
+#+END_SRC
+* Quick peek at processed schedule
 #+BEGIN_SRC python :results table
-fs = Path("Data") / Path("25-26sem2.xlsx")
 data = process_schedule(fs, "GENERAL SCHEDULE")
 #+END_SRC
 
+
 #+RESULTS:
 :results:
-2025-12-12 16:34:12,409 MainThread~30 /helper.py@123@load_general_schedule/ Missing columns ['college', 'section'] in sheet GENERAL SCHEDULE; filling with NA
-2025-12-12 16:34:12,416 MainThread~20 /class_schedule.py@41@general_cleaning/ Starting general cleaning of the data.
-2025-12-12 16:34:12,430 MainThread~20 /class_schedule.py@63@general_cleaning/ Completed general cleaning.
-2025-12-12 16:34:12,431 MainThread~20 /helper.py@143@process_schedule/ Completed general cleaning
-2025-12-12 16:34:12,431 MainThread~20 /class_schedule.py@78@clean_and_harmonize_times/ cleaning and harmonizing times.
+2025-12-12 18:27:42,690 MainThread~30 /helper.py@112@load_general_schedule/ Missing columns ['college'] in sheet GENERAL SCHEDULE; filling with NA
+2025-12-12 18:27:42,696 MainThread~20 /class_schedule.py@41@general_cleaning/ Starting general cleaning of the data.
+2025-12-12 18:27:42,707 MainThread~20 /class_schedule.py@63@general_cleaning/ Completed general cleaning.
+2025-12-12 18:27:42,708 MainThread~20 /helper.py@131@process_schedule/ Completed general cleaning
+2025-12-12 18:27:42,708 MainThread~20 /class_schedule.py@78@clean_and_harmonize_times/ cleaning and harmonizing times.
 /mnt/backup/Prog/Git/schedule_checker_app/class_schedule/class_schedule.py:96: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
   rows_with_pm_repeated = time_series.str.contains(r"(?P<A>pm).*(?P=A)")
-2025-12-12 16:34:12,546 MainThread~20 /utilities.py@16@log_offending_rows/ ; is in rows [333]
-2025-12-12 16:34:12,552 MainThread~20 /class_schedule.py@121@clean_and_harmonize_times/ Completed time cleaning and harmonization.
-2025-12-12 16:34:12,552 MainThread~20 /helper.py@146@process_schedule/ Completed cleaning and harmonizing times
-2025-12-12 16:34:12,552 MainThread~20 /helper.py@148@process_schedule/ Starting with applied epidemiology a special course to split in 2
-2025-12-12 16:34:12,555 MainThread~20 /helper.py@150@process_schedule/ Completed special applied epidemiology course
-2025-12-12 16:34:12,555 MainThread~20 /class_schedule.py@135@getting_start_end_times/ Extracting start and end times from the time column.
-2025-12-12 16:34:12,700 MainThread~20 /class_schedule.py@145@getting_start_end_times/ Completed extraction of start and end times.
-2025-12-12 16:34:12,700 MainThread~20 /helper.py@153@process_schedule/ Completed getting start and end times
-2025-12-12 16:34:12,700 MainThread~20 /class_schedule.py@156@add_duration/ Calculating course durations.
-2025-12-12 16:34:12,800 MainThread~20 /class_schedule.py@166@add_duration/ Completed calculation of course durations.
-2025-12-12 16:34:12,800 MainThread~20 /helper.py@156@process_schedule/ Completed adding duration
-2025-12-12 16:34:12,801 MainThread~20 /class_schedule.py@356@harmonize_course_codes/ Adding weekday names.
-2025-12-12 16:34:12,801 MainThread~20 /helper.py@159@process_schedule/ Completed harmonizing course codes
-2025-12-12 16:34:12,801 MainThread~20 /class_schedule.py@177@add_course_id_year_college/ Crée et ajoute un identifiant et l'année pour chaque cours.
+2025-12-12 18:27:42,714 MainThread~20 /utilities.py@16@log_offending_rows/ ; is in rows [333]
+2025-12-12 18:27:42,720 MainThread~20 /class_schedule.py@121@clean_and_harmonize_times/ Completed time cleaning and harmonization.
+2025-12-12 18:27:42,720 MainThread~20 /helper.py@134@process_schedule/ Completed cleaning and harmonizing times
+2025-12-12 18:27:42,720 MainThread~20 /helper.py@136@process_schedule/ Starting with applied epidemiology a special course to split in 2
+2025-12-12 18:27:42,722 MainThread~20 /helper.py@138@process_schedule/ Completed special applied epidemiology course
+2025-12-12 18:27:42,722 MainThread~20 /class_schedule.py@135@getting_start_end_times/ Extracting start and end times from the time column.
+2025-12-12 18:27:42,869 MainThread~20 /class_schedule.py@145@getting_start_end_times/ Completed extraction of start and end times.
+2025-12-12 18:27:42,869 MainThread~20 /helper.py@141@process_schedule/ Completed getting start and end times
+2025-12-12 18:27:42,869 MainThread~20 /class_schedule.py@156@add_duration/ Calculating course durations.
+2025-12-12 18:27:42,967 MainThread~20 /class_schedule.py@166@add_duration/ Completed calculation of course durations.
+2025-12-12 18:27:42,968 MainThread~20 /helper.py@144@process_schedule/ Completed adding duration
+2025-12-12 18:27:42,968 MainThread~20 /class_schedule.py@356@harmonize_course_codes/ Adding weekday names.
+2025-12-12 18:27:42,969 MainThread~20 /helper.py@147@process_schedule/ Completed harmonizing course codes
+2025-12-12 18:27:42,969 MainThread~20 /class_schedule.py@177@add_course_id_year_college/ Crée et ajoute un identifiant et l'année pour chaque cours.
 /mnt/backup/Prog/Git/schedule_checker_app/class_schedule/class_schedule.py:182: FutureWarning: Series.__getitem__ treating keys as positions is deprecated. In a future version, integer keys will always be treated as labels (consistent with DataFrame behavior). To access a value by position, use `ser.iloc[pos]`
   lambda x: f"{x[0]}_{x[1]}_s{x[2]:.0f}", axis=1
-2025-12-12 16:34:12,979 MainThread~30 /class_schedule.py@225@add_course_id_year_college/ Unmapped course encountered: [(('EEDU_302', 'Entrepreneurship II', 'Junior'), 'EEDU')]
+2025-12-12 18:27:43,154 MainThread~30 /class_schedule.py@225@add_course_id_year_college/ Unmapped course encountered: [(('EEDU_302', 'Entrepreneurship II', 'Junior'), 'EEDU')]
 >> It is not a course that was seen before.  We need to update the course_colleged variable in file settings.py <<
-2025-12-12 16:34:12,980 MainThread~20 /class_schedule.py@231@add_course_id_year_college/ Completed generation of course IDs and assignment of colleges.
-2025-12-12 16:34:12,980 MainThread~20 /helper.py@162@process_schedule/ Completed adding course ID, year, and college
-2025-12-12 16:34:12,980 MainThread~20 /class_schedule.py@245@expand_days/ Expanding days into separate rows.
-2025-12-12 16:34:14,374 MainThread~20 /class_schedule.py@248@expand_days/ Completed expansion of days.
-2025-12-12 16:34:14,374 MainThread~20 /class_schedule.py@290@add_weekname/ Adding weekday names.
-2025-12-12 16:34:14,397 MainThread~20 /class_schedule.py@295@add_weekname/ Completed expansion of days.
+2025-12-12 18:27:43,154 MainThread~20 /class_schedule.py@231@add_course_id_year_college/ Completed generation of course IDs and assignment of colleges.
+2025-12-12 18:27:43,154 MainThread~20 /helper.py@150@process_schedule/ Completed adding course ID, year, and college
+2025-12-12 18:27:43,154 MainThread~20 /class_schedule.py@245@expand_days/ Expanding days into separate rows.
+2025-12-12 18:27:44,635 MainThread~20 /class_schedule.py@248@expand_days/ Completed expansion of days.
+2025-12-12 18:27:44,635 MainThread~20 /class_schedule.py@290@add_weekname/ Adding weekday names.
+2025-12-12 18:27:44,660 MainThread~20 /class_schedule.py@295@add_weekname/ Completed expansion of days.
 :end:
 
-#+BEGIN_SRC python :results value
-data.head()  
+#+BEGIN_SRC python :results output
+  for d in data.head().iterrows():
+      print(f"{d}\n")
 #+END_SRC
 
 #+RESULTS:
 :results:
-                  sts        instructor  ... start_time end_time
-0 2025-02-04 08:00:00  YANCY, George H.  ...      08:00    09:30
-1 2025-02-03 08:00:00  YANCY, George H.  ...      08:00    09:30
-2 2025-02-06 16:20:00     GANDYU, A. S.  ...      16:20    17:50
-3 2025-02-05 16:20:00     GANDYU, A. S.  ...      16:20    17:50
-4 2025-02-04 09:40:00  MOULBA, Alpha P.  ...      09:40    11:10
+(0, sts                    2025-02-04 08:00:00
+instructor                YANCY, George H.
+location                             AC-30
+weekday                            Tuesday
+cid                         ACCT_102_s<NA>
+credit                                 3.0
+course_title    Introduction to Accounting
+college                               COBA
+oldidx                                   1
+ets                    2025-02-04 09:30:00
+start_time                           08:00
+end_time                             09:30
+Name: 0, dtype: object)
 
-[5 rows x 12 columns]
+(1, sts                    2025-02-03 08:00:00
+instructor                YANCY, George H.
+location                             AC-30
+weekday                             Monday
+cid                         ACCT_102_s<NA>
+credit                                 3.0
+course_title    Introduction to Accounting
+college                               COBA
+oldidx                                   1
+ets                    2025-02-03 09:30:00
+start_time                           08:00
+end_time                             09:30
+Name: 1, dtype: object)
+
+(2, sts                    2025-02-06 16:20:00
+instructor                   GANDYU, A. S.
+location                             AC-31
+weekday                           Thursday
+cid                         ACCT_102_s<NA>
+credit                                 3.0
+course_title    Introduction to Accounting
+college                               COBA
+oldidx                                   2
+ets                    2025-02-06 17:50:00
+start_time                           16:20
+end_time                             17:50
+Name: 2, dtype: object)
+
+(3, sts                    2025-02-05 16:20:00
+instructor                   GANDYU, A. S.
+location                             AC-31
+weekday                          Wednesday
+cid                         ACCT_102_s<NA>
+credit                                 3.0
+course_title    Introduction to Accounting
+college                               COBA
+oldidx                                   2
+ets                    2025-02-05 17:50:00
+start_time                           16:20
+end_time                             17:50
+Name: 3, dtype: object)
+
+(4, sts                    2025-02-04 09:40:00
+instructor                MOULBA, Alpha P.
+location                             AC-31
+weekday                            Tuesday
+cid                         ACCT_102_s<NA>
+credit                                 3.0
+course_title    Introduction to Accounting
+college                               COBA
+oldidx                                   3
+ets                    2025-02-04 11:10:00
+start_time                           09:40
+end_time                             11:10
+Name: 4, dtype: object)
 :end:
 
 #+BEGIN_SRC python :results value
@@ -110,23 +236,38 @@ data.head()
   day = 'Monday'
   day_df = data.loc[day_gps[day]]
   cl = _detect_location_conflicts(day_df)
-  d = day_df.loc[day_df.location == 'AA 117']
-  d.loc[:,['instructor','sts','ets','course_title']].sort_values('instructor').drop_duplicates('course_title')
 #+END_SRC
 
 #+RESULTS:
 :results:
-                       instructor  ...                                       course_title
-245  Dr. Uchechukwu S. Onwudiegwu  ...  Principles and Foundations of Early Childhood ...
-253  Dr. Uchechukwu S. Onwudiegwu  ...                    Infants and Toddlers Group Care
-316  Dr. Uchechukwu S. Onwudiegwu  ...    Principles and Foundations of Primary Education
-243             Wlateh, George T.  ...  Mathematics for Teachers in Early Years’Classr...
-314             Wlateh, George T.  ...     Mathematics for Teachers in Primary Classrooms
+:end:
+#+BEGIN_SRC python
+  for d in cl.conflict_details:
+      print(f"{d}\n")
+  #+END_SRC
 
-[5 rows x 4 columns]
+#+RESULTS:
+:results:
+Academic Reading & Writing | AKPAH, Dr. Bartholomew C | 13:00-14:30 | ENGL_102_s<NA>; Introduction to Literature | AKPAH, Dr. Bartholomew C | 13:00-14:30 | ENGL_204_s<NA>; Geometry & Trigonometry | KATU, Edem D. | 13:00-14:30 | MATH_102_s<NA>
+
+Intermediate French | STAFF | 11:20-12:50 | FREN_202_s<NA>; Advanced Glebo | ALLISON, Joseph | 11:20-12:50 | GLE_202_s<NA>
+
+Environmental Laws and Policy | Staff | 09:40-11:10 | ENVS_408_s<NA>; Intermediate French | MIREMONT, Jean | 09:40-11:10 | FREN_202_s<NA>
+
+Mathematics for Teachers in Early Years’Classrooms | ONWUDIEGWU, Dr. U. S. | 11:20-12:50 | ECD_262_s<NA>; Mathematics for Teachers in Primary Classrooms | ONWUDIEGWU, Dr. U. S. | 11:20-12:50 | EDUP_262_s<NA>; Principles and Foundations of Early Childhood Development and Education | WLATEH, George T. | 13:00-14:30 | ECD_264_s<NA>; Principles and Foundations of Primary Education | WLATEH, George T. | 13:00-14:30 | EDUP_264_s<NA>; Teaching Language Arts Through Literature, Performance and Visual Arts in Early Childhood Setting | ONWUDIEGWU, Dr. U. S. | 14:40-16:10 | ECD_364_s<NA>; Teaching Language Arts Through Literature, Performance and Visual Arts in Primary Curriculum | ONWUDIEGWU, Dr. U. S. | 14:40-16:10 | EDUP_364_s<NA>; Infants and Toddlers Group Care | WLATEH, George T. | 16:20-17:50 | ECD_369_s<NA>; Infants and Toddlers Group Care | WLATEH, George T. | 16:20-17:50 | EDUP_369_s<NA>
+
+Principles of Economics II | LONKLO, Alexander | 16:20-17:50 | ECON_202_s<NA>; Research Methodology | CASSIUS, Dr. Cooper | 16:20-17:50 | ECON_308_s<NA>
+
+Web Programming and Development | GILBERT, Dr. Chris | 13:00-14:30 | CSENG_302_s<NA>; Network Principles and Computer security | GILBERT, Dr. Chris | 14:20-16:10 | CSENG_410_s<NA>
+
+Moeling, Simulation and Control of Mechnical systems | Staff | 16:20-17:50 | MENG_510_s<NA>; Mechanical Lab II | JEMIGBEYI, O. S. | 17:30-18:30 | MENG_410_s<NA>
+
+Curriculum and Instruction Supervised Student Teaching II | KRAH, Augustine H. | 08:00-12:00 | ECD_462_s<NA>; Curriculum and Instruction Supervised Student Teaching II | KRAH, Augustine H. | 08:00-12:00 | EDU_476_s<NA>; Curriculum and Instruction Supervised Student Teaching II | KRAH, Augustine H. | 08:00-12:00 | EDUP_462_s<NA>; Supervised Clinical Practice II | KRAH, Augustine H. | 08:00-12:00 | GCED_482_s<NA>
+
+Project Writing | SAAD, Solomon | 09:00-17:00 | PADM_430_s<NA>; Project Writing | VANDI, Patrick | 09:00-12:00 | PADM_430_s<NA>; Project Writing | ANZAH, Bertha | 14:00-17:00 | BUSA_430_s<NA>; Accounting Project writing | BENSON, Dr. Tukundane | 14:40-16:10 | ACCT_430_s<NA>; Project Writing | BENSON, Dr. Tukundane | 14:40-16:10 | BFIN_410_s<NA>
 :end:
 
-
+* Checkconflicts
 #+BEGIN_SRC python :results value
   # ['sts', 'instructor', 'location', 'weekday', 'cid', 'credit',       'course_title', 'college', 'oldidx', 'ets', 'start_time', 'end_time'],
   cols= ['instructor', 'location', 'weekday', 'cid','course_title', 'college', 'start_time', 'end_time']
@@ -152,7 +293,64 @@ data.head()
 
 [717 rows x 8 columns])
 :end:
+* Check conflicts
+#+BEGIN_SRC python
+def _detect_location_conflicts(day_df: pd.DataFrame) -> pd.DataFrame:
+    """Return conflicts per location (overlaps and exact duplicates).
 
+    Columns: location, conflict_start, conflict_end, conflict_details (string)
+    """
+
+    rows = []
+    for location, group in day_df.groupby("location"):
+        group_sorted = group.sort_values("sts")
+        records = group_sorted.to_dict(orient="records")
+
+        duplicate_dicts = []
+        for _, g in group_sorted.groupby(["sts", "ets", "instructor"]):
+            if len(g) > 1:
+                duplicate_dicts.extend(g.to_dict(orient="records"))
+
+        overlaps = []
+        prev_end = None
+        prev_rec = None
+        for rec in records:
+            sts = rec["sts"]
+            if prev_end is not None and sts < prev_end:
+                overlaps.append(prev_rec)
+                overlaps.append(rec)
+            prev_end = rec["ets"] if prev_end is None else max(prev_end, rec["ets"])
+            prev_rec = rec
+
+        all_conflicts = overlaps + duplicate_dicts
+        if not all_conflicts:
+            continue
+
+        uniq = pd.DataFrame(all_conflicts).drop_duplicates()
+        details = []
+        for r in uniq.to_dict(orient="records"):
+            s = pd.to_datetime(r.get("sts")).strftime("%H:%M")
+            e = pd.to_datetime(r.get("ets")).strftime("%H:%M")
+            details.append(
+                f"{r.get('course_title','')} | {r.get('instructor','')} | {s}-{e} | {r.get('cid','')}"
+            )
+
+        rows.append(
+            {
+                "location": location,
+                "conflict_start": uniq.sts.min(),
+                "conflict_end": uniq.ets.max(),
+                "conflict_details": "; ".join(details),
+            }
+        )
+
+    return pd.DataFrame(rows)
+#+END_SRC
+
+#+RESULTS:
+:results:
+:end:
+  
 * College distribution snapshot
 
 #+BEGIN_SRC python :results value

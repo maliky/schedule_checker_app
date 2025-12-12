@@ -8,58 +8,6 @@ room_order = alt.EncodingSortField(field="location", order="ascending")
 instructor_order = alt.EncodingSortField(field="instructor", order="ascending")
 
 
-def _detect_location_conflicts(day_df: pd.DataFrame) -> pd.DataFrame:
-    """Return conflicts per location (overlaps and exact duplicates).
-
-    Columns: location, conflict_start, conflict_end, conflict_details (string)
-    """
-
-    rows = []
-    for location, group in day_df.groupby("location"):
-        group_sorted = group.sort_values("sts")
-        records = group_sorted.to_dict(orient="records")
-
-        duplicate_dicts = []
-        for _, g in group_sorted.groupby(["sts", "ets", "instructor"]):
-            if len(g) > 1:
-                duplicate_dicts.extend(g.to_dict(orient="records"))
-
-        overlaps = []
-        prev_end = None
-        prev_rec = None
-        for rec in records:
-            sts = rec["sts"]
-            if prev_end is not None and sts < prev_end:
-                overlaps.append(prev_rec)
-                overlaps.append(rec)
-            prev_end = rec["ets"] if prev_end is None else max(prev_end, rec["ets"])
-            prev_rec = rec
-
-        all_conflicts = overlaps + duplicate_dicts
-        if not all_conflicts:
-            continue
-
-        uniq = pd.DataFrame(all_conflicts).drop_duplicates()
-        details = []
-        for r in uniq.to_dict(orient="records"):
-            s = pd.to_datetime(r.get("sts")).strftime("%H:%M")
-            e = pd.to_datetime(r.get("ets")).strftime("%H:%M")
-            details.append(
-                f"{r.get('course_title','')} | {r.get('instructor','')} | {s}-{e} | {r.get('cid','')}"
-            )
-
-        rows.append(
-            {
-                "location": location,
-                "conflict_start": uniq.sts.min(),
-                "conflict_end": uniq.ets.max(),
-                "conflict_details": "; ".join(details),
-            }
-        )
-
-    return pd.DataFrame(rows)
-
-
 def create_visualizations(data, dout="templates"):
     """
     Generates visualizations for class schedules based on instructors, rooms, and weekdays.
@@ -80,23 +28,33 @@ def create_visualizations(data, dout="templates"):
         2. `room_final_chart.html` (Room-based schedules)
     """
     data = data.copy()
+    # > Do I have unknown college ?
+    # > give me the cmd to list the lines with na or unknown
     data.loc[:, "college"] = data.college.fillna("Unknown")
 
     day_gps = data.groupby(["weekday"]).groups
 
     colleges = sorted(data.college.unique())
-    weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    weekdays = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
 
     clg_instructor_charts = []
     day_room_charts = []
 
     # Reference: Altair parameter bindings allow dropdown filters (see official docs
     # https://altair-viz.github.io/user_guide/parameters.html#binding-parameters-to-input-elements)
-    college_param = alt.param(
-        "College",
-        bind=alt.binding_select(options=["All"] + colleges),
-        value="All",
-    )
+    # college_param = alt.param(
+    #     "College",
+    #     bind=alt.binding_select(options=["All"] + colleges),
+    #     value="All",
+    # )
 
     for day in weekdays:
 
@@ -105,11 +63,8 @@ def create_visualizations(data, dout="templates"):
         # Reference: Explicit time-scale domains keep per-day charts aligned
         # (Altair scale docs: https://altair-viz.github.io/user_guide/customization.html#scales)
         time_scale = alt.Scale(domain=[day_df.sts.min(), day_df.ets.max()], nice=False)
-        conflict_df = _detect_location_conflicts(day_df)
 
-        day_room_chart = make_day_room_chart(
-            day_df, time_scale, title=day, conflict_df=conflict_df
-        )
+        day_room_chart = make_day_room_chart(day_df, time_scale, title=day)
         day_room_charts.append(day_room_chart)
 
         clg_day_charts = []
@@ -135,18 +90,7 @@ def create_visualizations(data, dout="templates"):
         # college_chart.save(f"{day}-colleges_chart.html")
         instructor_final_chart = alt.hconcat(*clg_instructor_charts)
 
-    instructor_final_chart = (
-        instructor_final_chart
-        # Reference: Adding parameters enables interactive filtering with transform_filter
-        # (https://altair-viz.github.io/user_guide/parameters.html#parameters-in-transformations)
-        .add_params(college_param)
-        .transform_filter(
-            (college_param == "All") | (alt.datum.college == college_param)
-        )
-        # Reference: Resolving scales avoids shared axes across concatenated charts
-        # (https://altair-viz.github.io/user_guide/compound_charts.html#resolve-scale)
-        .resolve_scale(x="independent")
-    )
+    instructor_final_chart = instructor_final_chart.resolve_scale(x="independent")
 
     instructor_final_chart.save(f"{dout}/instructor_final_chart.html")
 
@@ -160,7 +104,6 @@ def make_day_room_chart(
     day_data_df: pd.DataFrame,
     time_scale: alt.Scale,
     title: str,
-    conflict_df: pd.DataFrame | None = None,
 ):
     # A chart layer for the room occupation
     chart_rooms = (
@@ -181,50 +124,8 @@ def make_day_room_chart(
                 "end_time",
             ],
         )
-    )
-    layers = []
-
-    if conflict_df is not None and not conflict_df.empty:
-        conflict_df = conflict_df.copy()
-        conflict_df.loc[:, "conflict_start"] = conflict_df["conflict_start"].astype(str)
-        conflict_df.loc[:, "conflict_end"] = conflict_df["conflict_end"].astype(str)
-        conflict_df.loc[:, "conflict_details"] = conflict_df["conflict_details"].apply(str)
-        conflict_layer = (
-            alt.Chart(conflict_df)
-            .mark_rect(color="rgba(255,0,0,0.15)")
-            .encode(
-                x=alt.X("conflict_start:T", scale=time_scale),
-                x2=alt.X2("conflict_end:T"),
-                tooltip=[
-                    alt.Tooltip("location:N", title="Location"),
-                    alt.Tooltip("conflict_start:T", title="First overlap"),
-                    alt.Tooltip("conflict_end:T", title="Last overlap"),
-                    alt.Tooltip("conflict_details:N", title="Conflicting sessions"),
-                ],
-            )
-        )
-        layers.append(conflict_layer)
-
-    layers.append(chart_rooms)
-
-    layered_chart = (
-        alt.layer(*layers, data=day_data_df)
-        .facet(
-            row=alt.Facet(
-                "location:N",
-                sort=room_order,
-                header=alt.Header(
-                    labelAngle=0, labelAnchor="start", labelBaseline="middle"
-                ),
-                title=None,
-            )
-        )
-        .resolve_scale(y="independent")
-        # Reference: Faceting charts by row is documented in the official Altair guide
-        # (https://altair-viz.github.io/user_guide/facets.html#row-and-column-facets)
-        .properties(title=title)
-    )
-    return layered_chart
+    ).properties(title=title)
+    return chart_rooms
 
 
 def make_clg_day_instructor_chart(
