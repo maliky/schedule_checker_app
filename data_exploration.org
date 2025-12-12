@@ -50,45 +50,60 @@ def _detect_location_conflicts(day_df: pd.DataFrame) -> list[str]:
 :end:
 
 #+BEGIN_SRC python :results table
-fs = Path("Data") / Path("25-26Sem2-schedule.xlsx")
+fs = Path("Data") / Path("25-26sem2.xlsx")
 data = process_schedule(fs, "GENERAL SCHEDULE")
-data.head()
 #+END_SRC
 
 #+RESULTS:
 :results:
-2025-12-10 05:51:54,489 MainThread~30 /helper.py@123@load_general_schedule/ Missing columns ['college', 'section'] in sheet GENERAL SCHEDULE; filling with NA
-2025-12-10 05:51:54,519 MainThread~20 /class_schedule.py@41@general_cleaning/ Starting general cleaning of the data.
-2025-12-10 05:51:54,545 MainThread~20 /class_schedule.py@63@general_cleaning/ Completed general cleaning.
-2025-12-10 05:51:54,545 MainThread~20 /helper.py@143@process_schedule/ Completed general cleaning
-2025-12-10 05:51:54,545 MainThread~20 /class_schedule.py@78@clean_and_harmonize_times/ cleaning and harmonizing times.
+2025-12-12 16:34:12,409 MainThread~30 /helper.py@123@load_general_schedule/ Missing columns ['college', 'section'] in sheet GENERAL SCHEDULE; filling with NA
+2025-12-12 16:34:12,416 MainThread~20 /class_schedule.py@41@general_cleaning/ Starting general cleaning of the data.
+2025-12-12 16:34:12,430 MainThread~20 /class_schedule.py@63@general_cleaning/ Completed general cleaning.
+2025-12-12 16:34:12,431 MainThread~20 /helper.py@143@process_schedule/ Completed general cleaning
+2025-12-12 16:34:12,431 MainThread~20 /class_schedule.py@78@clean_and_harmonize_times/ cleaning and harmonizing times.
 /mnt/backup/Prog/Git/schedule_checker_app/class_schedule/class_schedule.py:96: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
   rows_with_pm_repeated = time_series.str.contains(r"(?P<A>pm).*(?P=A)")
-2025-12-10 05:51:54,569 MainThread~20 /class_schedule.py@121@clean_and_harmonize_times/ Completed time cleaning and harmonization.
-2025-12-10 05:51:54,569 MainThread~20 /helper.py@146@process_schedule/ Completed cleaning and harmonizing times
-2025-12-10 05:51:54,569 MainThread~20 /helper.py@148@process_schedule/ Starting with applied epidemiology a special course to split in 2
-2025-12-10 05:51:54,576 MainThread~20 /helper.py@150@process_schedule/ Completed special applied epidemiology course
-2025-12-10 05:51:54,576 MainThread~20 /class_schedule.py@135@getting_start_end_times/ Extracting start and end times from the time column.
-2025-12-10 05:51:54,802 MainThread~20 /class_schedule.py@145@getting_start_end_times/ Completed extraction of start and end times.
-2025-12-10 05:51:54,802 MainThread~20 /helper.py@153@process_schedule/ Completed getting start and end times
-2025-12-10 05:51:54,803 MainThread~20 /class_schedule.py@156@add_duration/ Calculating course durations.
-2025-12-10 05:51:54,948 MainThread~20 /class_schedule.py@166@add_duration/ Completed calculation of course durations.
-2025-12-10 05:51:54,948 MainThread~20 /helper.py@156@process_schedule/ Completed adding duration
-2025-12-10 05:51:54,949 MainThread~20 /class_schedule.py@356@harmonize_course_codes/ Adding weekday names.
-2025-12-10 05:51:54,949 MainThread~20 /helper.py@159@process_schedule/ Completed harmonizing course codes
-2025-12-10 05:51:54,950 MainThread~20 /class_schedule.py@177@add_course_id_year_college/ Crée et ajoute un identifiant et l'année pour chaque cours.
+2025-12-12 16:34:12,546 MainThread~20 /utilities.py@16@log_offending_rows/ ; is in rows [333]
+2025-12-12 16:34:12,552 MainThread~20 /class_schedule.py@121@clean_and_harmonize_times/ Completed time cleaning and harmonization.
+2025-12-12 16:34:12,552 MainThread~20 /helper.py@146@process_schedule/ Completed cleaning and harmonizing times
+2025-12-12 16:34:12,552 MainThread~20 /helper.py@148@process_schedule/ Starting with applied epidemiology a special course to split in 2
+2025-12-12 16:34:12,555 MainThread~20 /helper.py@150@process_schedule/ Completed special applied epidemiology course
+2025-12-12 16:34:12,555 MainThread~20 /class_schedule.py@135@getting_start_end_times/ Extracting start and end times from the time column.
+2025-12-12 16:34:12,700 MainThread~20 /class_schedule.py@145@getting_start_end_times/ Completed extraction of start and end times.
+2025-12-12 16:34:12,700 MainThread~20 /helper.py@153@process_schedule/ Completed getting start and end times
+2025-12-12 16:34:12,700 MainThread~20 /class_schedule.py@156@add_duration/ Calculating course durations.
+2025-12-12 16:34:12,800 MainThread~20 /class_schedule.py@166@add_duration/ Completed calculation of course durations.
+2025-12-12 16:34:12,800 MainThread~20 /helper.py@156@process_schedule/ Completed adding duration
+2025-12-12 16:34:12,801 MainThread~20 /class_schedule.py@356@harmonize_course_codes/ Adding weekday names.
+2025-12-12 16:34:12,801 MainThread~20 /helper.py@159@process_schedule/ Completed harmonizing course codes
+2025-12-12 16:34:12,801 MainThread~20 /class_schedule.py@177@add_course_id_year_college/ Crée et ajoute un identifiant et l'année pour chaque cours.
 /mnt/backup/Prog/Git/schedule_checker_app/class_schedule/class_schedule.py:182: FutureWarning: Series.__getitem__ treating keys as positions is deprecated. In a future version, integer keys will always be treated as labels (consistent with DataFrame behavior). To access a value by position, use `ser.iloc[pos]`
   lambda x: f"{x[0]}_{x[1]}_s{x[2]:.0f}", axis=1
-2025-12-10 05:51:55,147 MainThread~30 /class_schedule.py@225@add_course_id_year_college/ Unmapped course encountered: [(('PHY_202', 'Physics For Engineers II', 'Sophomore'), 'PHY')]
+2025-12-12 16:34:12,979 MainThread~30 /class_schedule.py@225@add_course_id_year_college/ Unmapped course encountered: [(('EEDU_302', 'Entrepreneurship II', 'Junior'), 'EEDU')]
 >> It is not a course that was seen before.  We need to update the course_colleged variable in file settings.py <<
-2025-12-10 05:51:55,148 MainThread~20 /class_schedule.py@231@add_course_id_year_college/ Completed generation of course IDs and assignment of colleges.
-2025-12-10 05:51:55,148 MainThread~20 /helper.py@162@process_schedule/ Completed adding course ID, year, and college
-2025-12-10 05:51:55,148 MainThread~20 /class_schedule.py@245@expand_days/ Expanding days into separate rows.
-2025-12-10 05:51:56,785 MainThread~20 /class_schedule.py@248@expand_days/ Completed expansion of days.
-2025-12-10 05:51:56,785 MainThread~20 /class_schedule.py@290@add_weekname/ Adding weekday names.
-2025-12-10 05:51:56,814 MainThread~20 /class_schedule.py@295@add_weekname/ Completed expansion of days.
+2025-12-12 16:34:12,980 MainThread~20 /class_schedule.py@231@add_course_id_year_college/ Completed generation of course IDs and assignment of colleges.
+2025-12-12 16:34:12,980 MainThread~20 /helper.py@162@process_schedule/ Completed adding course ID, year, and college
+2025-12-12 16:34:12,980 MainThread~20 /class_schedule.py@245@expand_days/ Expanding days into separate rows.
+2025-12-12 16:34:14,374 MainThread~20 /class_schedule.py@248@expand_days/ Completed expansion of days.
+2025-12-12 16:34:14,374 MainThread~20 /class_schedule.py@290@add_weekname/ Adding weekday names.
+2025-12-12 16:34:14,397 MainThread~20 /class_schedule.py@295@add_weekname/ Completed expansion of days.
 :end:
 
+#+BEGIN_SRC python :results value
+data.head()  
+#+END_SRC
+
+#+RESULTS:
+:results:
+                  sts        instructor  ... start_time end_time
+0 2025-02-04 08:00:00  YANCY, George H.  ...      08:00    09:30
+1 2025-02-03 08:00:00  YANCY, George H.  ...      08:00    09:30
+2 2025-02-06 16:20:00     GANDYU, A. S.  ...      16:20    17:50
+3 2025-02-05 16:20:00     GANDYU, A. S.  ...      16:20    17:50
+4 2025-02-04 09:40:00  MOULBA, Alpha P.  ...      09:40    11:10
+
+[5 rows x 12 columns]
+:end:
 
 #+BEGIN_SRC python :results value
   day_gps = data.groupby(["weekday"]).groups
@@ -109,6 +124,33 @@ data.head()
 314             Wlateh, George T.  ...     Mathematics for Teachers in Primary Classrooms
 
 [5 rows x 4 columns]
+:end:
+
+
+#+BEGIN_SRC python :results value
+  # ['sts', 'instructor', 'location', 'weekday', 'cid', 'credit',       'course_title', 'college', 'oldidx', 'ets', 'start_time', 'end_time'],
+  cols= ['instructor', 'location', 'weekday', 'cid','course_title', 'college', 'start_time', 'end_time']
+  data.columns,  data.loc[:,cols]
+#+END_SRC
+
+#+RESULTS:
+:results:
+(Index(['sts', 'instructor', 'location', 'weekday', 'cid', 'credit',
+       'course_title', 'college', 'oldidx', 'ets', 'start_time', 'end_time'],
+      dtype='object'),            instructor location    weekday  ... college start_time end_time
+0    YANCY, George H.    AC-30     Monday  ...    COBA      08:00    09:30
+1    YANCY, George H.    AC-30    Tuesday  ...    COBA      08:00    09:30
+2       GANDYU, A. S.    AC-31  Wednesday  ...    COBA      16:20    17:50
+3       GANDYU, A. S.    AC-31   Thursday  ...    COBA      16:20    17:50
+4    MOULBA, Alpha P.    AC-31     Monday  ...    COBA      09:40    11:10
+..                ...      ...        ...  ...     ...        ...      ...
+712  KULEH, Augustine   AA 102     Friday  ...    COAS      11:20    12:50
+713      TUGBE, Cyrus  EBA 009  Wednesday  ...    COAS      09:40    11:10
+714      TUGBE, Cyrus  EBA 009   Thursday  ...    COAS      09:40    11:10
+715  KULEH, Augustine   AA 003   Saturday  ...    COAS      09:40    11:10
+716  KULEH, Augustine   AA 003     Friday  ...    COAS      09:40    11:10
+
+[717 rows x 8 columns])
 :end:
 
 * College distribution snapshot

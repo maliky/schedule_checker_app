@@ -16,13 +16,10 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-
-load_dotenv()  # Load variables from .env
+load_dotenv()  
 
 app = Flask(__name__, static_folder="static")
-# app.config['UPLOAD_FOLDER'] = "self./uploads"
 app.config["PROCESSED_FOLDER"] = "./processed"
-
 app.config["ENV"] = os.getenv("FLASK_ENV", "production")  # Default to production
 app.config["DEBUG"] = app.config["ENV"] == "development"
 
