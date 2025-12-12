@@ -2,10 +2,14 @@ import altair as alt
 from class_schedule.helper import process_schedule
 import pandas as pd
 
+alt.renderers.set_embed_options(renderer="svg")
+
 domain = {"start": {}, "end": {}}
 
 room_order = alt.EncodingSortField(field="location", order="ascending")
 instructor_order = alt.EncodingSortField(field="instructor", order="ascending")
+BASE_CHART_WIDTH = 420
+CATEGORY_STEP = 22
 
 
 def create_visualizations(data, dout="templates"):
@@ -124,6 +128,7 @@ def make_day_room_chart(
                 "end_time",
             ],
         )
+        .properties(width=BASE_CHART_WIDTH, height=alt.Step(CATEGORY_STEP))
     )
     layered_chart = (
         alt.layer(chart_instructors)
@@ -181,6 +186,7 @@ def make_clg_day_instructor_chart(
                 "end_time",
             ],
         )
+        .properties(width=BASE_CHART_WIDTH, height=alt.Step(CATEGORY_STEP))
     )
     layered_chart = (
         alt.layer(chart_instructor)
