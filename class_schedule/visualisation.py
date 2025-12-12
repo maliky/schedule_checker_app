@@ -90,6 +90,8 @@ def create_visualizations(data, dout="templates"):
     clg_instructor_charts = []
     day_room_charts = []
 
+    # Reference: Altair parameter bindings allow dropdown filters (see official docs
+    # https://altair-viz.github.io/user_guide/parameters.html#binding-parameters-to-input-elements)
     college_param = alt.param(
         "College",
         bind=alt.binding_select(options=["All"] + colleges),
@@ -100,6 +102,8 @@ def create_visualizations(data, dout="templates"):
 
         day_df = data.loc[day_gps[day]]
 
+        # Reference: Explicit time-scale domains keep per-day charts aligned
+        # (Altair scale docs: https://altair-viz.github.io/user_guide/customization.html#scales)
         time_scale = alt.Scale(domain=[day_df.sts.min(), day_df.ets.max()], nice=False)
         conflict_df = _detect_location_conflicts(day_df)
 
@@ -133,10 +137,14 @@ def create_visualizations(data, dout="templates"):
 
     instructor_final_chart = (
         instructor_final_chart
+        # Reference: Adding parameters enables interactive filtering with transform_filter
+        # (https://altair-viz.github.io/user_guide/parameters.html#parameters-in-transformations)
         .add_params(college_param)
         .transform_filter(
             (college_param == "All") | (alt.datum.college == college_param)
         )
+        # Reference: Resolving scales avoids shared axes across concatenated charts
+        # (https://altair-viz.github.io/user_guide/compound_charts.html#resolve-scale)
         .resolve_scale(x="independent")
     )
 
@@ -212,6 +220,8 @@ def make_day_room_chart(
             )
         )
         .resolve_scale(y="independent")
+        # Reference: Faceting charts by row is documented in the official Altair guide
+        # (https://altair-viz.github.io/user_guide/facets.html#row-and-column-facets)
         .properties(title=title)
     )
     return layered_chart
