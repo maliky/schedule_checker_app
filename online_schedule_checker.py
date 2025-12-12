@@ -2,11 +2,12 @@ import logging
 import os
 import sys
 from pathlib import Path
+from datetime import datetime
 
 import altair as alt
 import pandas as pd
 from dotenv import load_dotenv
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, redirect, render_template, request, url_for, send_file
 
 from class_schedule.exam_schedule import process_exam_workbook
 from class_schedule.helper import process_schedule
@@ -24,13 +25,41 @@ app.config["ENV"] = os.getenv("FLASK_ENV", "production")  # Default to productio
 app.config["DEBUG"] = app.config["ENV"] == "development"
 
 logging.basicConfig(filename="app.log", level=logging.INFO)
+ACTIVE_TERM = "AY 2025-26 · Semester 2"
+
+
+def _get_last_generated_timestamp():
+    """
+    Return the latest modification timestamp among generated assets, formatted for display.
+    """
+    candidates = [
+        BASE_DIR / "templates" / "instructor_final_chart.html",
+        BASE_DIR / "templates" / "room_final_chart.html",
+        Path(app.config["PROCESSED_FOLDER"]) / "processed_schedule.xlsx",
+    ]
+    latest_mtime = None
+    for path in candidates:
+        if path.exists():
+            mtime = path.stat().st_mtime
+            latest_mtime = mtime if latest_mtime is None else max(latest_mtime, mtime)
+
+    if latest_mtime is None:
+        return None
+
+    return datetime.fromtimestamp(latest_mtime).strftime("%Y-%m-%d %H:%M")
 
 ################
 # ROUTE VIEWS  #
 ################
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", titre="William V.S. Tubman Online Schedule Checker")
+    last_generated = _get_last_generated_timestamp()
+    return render_template(
+        "index.html",
+        titre="William V.S. Tubman Online Schedule Checker",
+        active_term=ACTIVE_TERM,
+        last_generated=last_generated,
+    )
 
 
 @app.route("/upload", methods=["POST"])

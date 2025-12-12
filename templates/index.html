@@ -1,32 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Welcome !</h2>
+<h2>Schedule intelligence for Deans & Registrars ({{ active_term }})</h2>
+<p class="lead">
+  Clear, printable views for staffing decisions, conflict checks, and room load balance.
+</p>
 
-<p>
-  <strong>What to do:</strong> Upload your class schedule Excel file and provide the sheet name if it’s not "GENERAL SCHEDULE".
+<p class="text-muted">
+  Last generated: {{ last_generated or "Not generated yet" }} (server time)
 </p>
-<p>
-  <strong>What you’ll get:</strong>
-  <ul>
-    <li>A clean, processed schedule file.</li>
-    <li>Two visualizations:
-      <ul>
-        <li>Instructor-based schedule.</li>
-        <li>Room-based schedule.</li>
-      </ul>
-    </li>
-  </ul>
+
+<ol class="pl-3">
+  <li>Upload the Excel schedule (add sheet name if not "GENERAL SCHEDULE").</li>
+  <li>Click “Regenerate Visualizations” and wait for the spinner to finish.</li>
+  <li>Open the Instructor or Room view links below for decision-ready charts.</li>
+</ol>
+
+<p class="mb-2">
+  <strong>Outputs:</strong> Instructor view (by faculty), Room view (by space), and a clean Excel for audit trails.
 </p>
-<p>
-  <strong>Current visualizations:</strong>
+<p class="mb-2">
+  <strong>Built for quick decisions:</strong> Print-ready SVG charts and aligned time scales so everything lines up.
+</p>
+
+<p class="mb-2">
+  <strong>Open visualizations:</strong>
   <a href="{{ url_for('view_instructor_chart') }}" class="link-primary">Instructor view</a>
   |
   <a href="{{ url_for('view_room_chart') }}" class="link-primary">Room view</a>
   |
   <a href="/download_processed" class="link-primary">Download processed schedule</a>
 </p>
-<p>
-  <strong>Need to refresh them?</strong> Upload a new file below to regenerate the charts.
+
+<p class="mb-4">
+  <strong>Refresh anytime:</strong> Upload a new file to regenerate the charts—small smart steps to keep everyone aligned.
 </p>
 
 <form id="uploadForm" enctype="multipart/form-data">
