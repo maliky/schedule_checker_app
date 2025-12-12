@@ -105,8 +105,7 @@ def make_day_room_chart(
     time_scale: alt.Scale,
     title: str,
 ):
-    # A chart layer for the room occupation
-    chart_rooms = (
+    chart_instructors = (
         alt.Chart(day_data_df)
         .mark_bar(opacity=0.5)
         .encode(
@@ -120,12 +119,30 @@ def make_day_room_chart(
                 "college",
                 "credit",
                 "course_title",
+                "location",
                 "start_time",
                 "end_time",
             ],
         )
-    ).properties(title=title)
-    return chart_rooms
+    )
+    layered_chart = (
+        alt.layer(chart_instructors)
+        .facet(
+            row=alt.Facet(
+                "location:N",
+                sort=room_order,
+                header=alt.Header(
+                    labelAngle=0,
+                    labelAnchor="start",
+                    labelBaseline="middle",
+                    title=None,
+                ),
+            ),
+        )
+        .resolve_scale(y="independent")
+        .properties(title=title)
+    )
+    return layered_chart
 
 
 def make_clg_day_instructor_chart(
